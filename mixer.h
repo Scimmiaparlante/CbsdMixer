@@ -3,6 +3,10 @@
 
 #include <vector>
 
+#include "audioio.h"
+
+#define NUM_SAMPLES 1024
+
 enum FilteringShape {
     RECTANGULAR_FILTERING,
     TRIANGULAR_FILTERING
@@ -17,14 +21,23 @@ enum WindowingFucntion {
 class Mixer
 {
 public:
+    //configuration data
     std::vector<float> frequencies;
     FilteringShape shape;
     WindowingFucntion wind;
 
+    //buffers
+    double* rawData;
+    double* processedData;
+    double* rawFrequencies;
+    double* processedFrequecies;
+
+    //AudioIO object to retrieve data
+    AudioIO* device;
+
     Mixer(std::vector<float> frequencies_, FilteringShape shape_, WindowingFucntion wind_);
 
-
-
+    void start();
 
 
 
