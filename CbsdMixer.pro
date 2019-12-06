@@ -31,11 +31,13 @@ CONFIG += c++11
 SOURCES += \
         main.cpp \
         plotwindow.cpp \
-    mixer.cpp
+    mixer.cpp \
+    audioio.cpp
 
 HEADERS += \
         plotwindow.h \
-    mixer.h
+    mixer.h \
+    audioio.h
 
 FORMS += \
         plotwindow.ui
