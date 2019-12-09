@@ -71,7 +71,7 @@ int AudioIO::input_read(int16_t* buf)
     {
         ret = snd_pcm_readi(capture_handle, buf, num_samples);
         if (ret < 0) {
-            std::cerr << "read from audio interface failed" << std::endl;
+            std::cerr << "read from audio interface failed: " << snd_strerror(ret) << std::endl;
             return 1;
         }
         read += ret;

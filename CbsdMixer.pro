@@ -42,8 +42,8 @@ HEADERS += \
 FORMS += \
         plotwindow.ui
 
-QMAKE_CXXFLAGS += -lasound
-LIBS += -lasound
+QMAKE_CXXFLAGS += -lasound -lfftw3
+LIBS += -lasound -lfftw3
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

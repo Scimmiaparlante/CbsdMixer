@@ -11,13 +11,11 @@ PlotWindow::PlotWindow(QWidget *parent) :
     ui->setupUi(this);
 
     ui->preFrequencyPlot->setAxisAutoScale(QwtPlot::yLeft, false);
-    ui->preFrequencyPlot->setAxisScale(QwtPlot::yLeft, -30000, 30000);
+    ui->preFrequencyPlot->setAxisScale(QwtPlot::yLeft, -1000000, 1000000);
 
     //mixer startup
     myMixer = new Mixer(std::vector<float>());
     mixerThread = new std::thread(&Mixer::start, myMixer);
-
-    time = 0;
 
     curve = new QwtPlotCurve();
     curve->setTitle( "Some Points" );
@@ -42,15 +40,14 @@ PlotWindow::~PlotWindow()
 
 void PlotWindow::replot()
 {
-    int16_t* data = myMixer->get_rawData();
+    double* data = myMixer->get_rawFrequencies();
     QPolygonF points;
-    for (long int i = 0; i < NUM_SAMPLES; ++i)
+    for (long int i = 0; i < COMP_SAMPLES; ++i)
     {
-        points << QPointF( time, static_cast<double>(data[i]) );
-        time++;
+        points << QPointF( static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES*i, data[i] );
     }
     curve->setSamples( points );
-    ui->preFrequencyPlot->setAxisScale(QwtPlot::xBottom, time - NUM_SAMPLES, time);
+    ui->preFrequencyPlot->setAxisScale(QwtPlot::xBottom, 0, SAMPLE_RATE/2);
 
     ui->preFrequencyPlot->replot();
 }
