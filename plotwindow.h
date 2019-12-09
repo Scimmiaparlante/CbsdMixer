@@ -32,8 +32,6 @@ private:
     QTimer *plotTimer;
     Mixer *myMixer;
     std::thread* mixerThread;
-
-    long int time;
 };
 
 #endif // PLOTWINDOW_H

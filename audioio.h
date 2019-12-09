@@ -5,7 +5,7 @@
 #include <cstdint>
 
 #include <alsa/asoundlib.h>
-
+#include <fftw3.h>
 
 class AudioIO
 {
@@ -20,7 +20,7 @@ private:
     unsigned int num_samples;
     unsigned int sample_rate;
 
-    snd_pcm_t *capture_handle;
+    snd_pcm_t* capture_handle;
 
     void input_init();
     [[noreturn]] void error(std::string mess, int err);
