@@ -65,13 +65,17 @@ void AudioIO::input_init()
 int AudioIO::input_read(int16_t* buf)
 {
     snd_pcm_sframes_t ret;
+    unsigned int read = 0;
 
-    ret = snd_pcm_readi(capture_handle, buf, num_samples);
-    if (ret != num_samples) {
-        std::cerr << "read from audio interface failed" << std::endl;
-        return 1;
+    while(read < num_samples)
+    {
+        ret = snd_pcm_readi(capture_handle, buf, num_samples);
+        if (ret < 0) {
+            std::cerr << "read from audio interface failed" << std::endl;
+            return 1;
+        }
+        read += ret;
     }
-
     return 0;
 }
 

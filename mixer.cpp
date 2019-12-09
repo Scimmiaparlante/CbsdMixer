@@ -1,9 +1,7 @@
 #include "mixer.h"
 
-//TODO: check this values
-#define SAMPLE_RATE     44100
-#define NUM_SAMPLES     1024
-#define DEVICE          "default"
+#include <fftw3.h>
+
 
 Mixer::Mixer(std::vector<float> frequencies_, FilteringShape shape_, WindowingFucntion wind_)
 {
@@ -11,17 +9,22 @@ Mixer::Mixer(std::vector<float> frequencies_, FilteringShape shape_, WindowingFu
     shape = shape_;
     wind = wind_;
 
-    device = new AudioIO(DEVICE, NUM_SAMPLES, SAMPLE_RATE);
+    rawData = new int16_t[NUM_SAMPLES]();
+
+    device = new AudioIO(DEF_DEVICE, NUM_SAMPLES, SAMPLE_RATE);
 }
 
 
 void Mixer::start()
 {
-    //ogni tot, leggi
+    while (true)
+    {
+        device->input_read(rawData);
+    }
+}
 
 
-
-
-
-
+int16_t* Mixer::get_rawData()
+{
+    return rawData;
 }

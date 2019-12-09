@@ -5,7 +5,9 @@
 
 #include "audioio.h"
 
-#define NUM_SAMPLES 1024
+#define SAMPLE_RATE     44100
+#define NUM_SAMPLES     2048
+#define DEF_DEVICE      "default"
 
 enum FilteringShape {
     RECTANGULAR_FILTERING,
@@ -27,7 +29,7 @@ public:
     WindowingFucntion wind;
 
     //buffers
-    double* rawData;
+    int16_t* rawData;
     double* processedData;
     double* rawFrequencies;
     double* processedFrequecies;
@@ -35,10 +37,11 @@ public:
     //AudioIO object to retrieve data
     AudioIO* device;
 
-    Mixer(std::vector<float> frequencies_, FilteringShape shape_, WindowingFucntion wind_);
+    Mixer(std::vector<float> frequencies_, FilteringShape shape_ = RECTANGULAR_FILTERING, WindowingFucntion wind_ = DISABLE_WINDOWING);
 
-    void start();
+    [[noreturn]] void start();
 
+    int16_t* get_rawData();
 
 
 

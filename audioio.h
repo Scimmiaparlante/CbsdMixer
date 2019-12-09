@@ -7,8 +7,6 @@
 #include <alsa/asoundlib.h>
 
 
-#define SAMPLERATE
-
 class AudioIO
 {
 public:
@@ -19,8 +17,8 @@ public:
 
 private:
     std::string device;
-    unsigned num_samples;
-    unsigned sample_rate;
+    unsigned int num_samples;
+    unsigned int sample_rate;
 
     snd_pcm_t *capture_handle;
 

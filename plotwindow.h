@@ -2,6 +2,14 @@
 #define PLOTWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
+
+#include "qwt_plot.h"
+#include "qwt_plot_curve.h"
+
+#include "mixer.h"
+
+#include <thread>
 
 namespace Ui {
 class PlotWindow;
@@ -15,8 +23,17 @@ public:
     explicit PlotWindow(QWidget *parent = nullptr);
     ~PlotWindow();
 
+public slots:
+    void replot();
+
 private:
     Ui::PlotWindow *ui;
+    QwtPlotCurve *curve;
+    QTimer *plotTimer;
+    Mixer *myMixer;
+    std::thread* mixerThread;
+
+    long int time;
 };
 
 #endif // PLOTWINDOW_H
