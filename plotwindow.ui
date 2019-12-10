@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1315</width>
-    <height>539</height>
+    <height>893</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -111,6 +111,81 @@
      </item>
     </layout>
    </widget>
+   <widget class="QWidget" name="gridLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>530</y>
+      <width>1281</width>
+      <height>301</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="Sliders_pane">
+     <item row="0" column="4">
+      <widget class="QwtSlider" name="Slider4"/>
+     </item>
+     <item row="0" column="5">
+      <widget class="QwtSlider" name="Slider5"/>
+     </item>
+     <item row="0" column="2">
+      <widget class="QwtSlider" name="Slider2"/>
+     </item>
+     <item row="0" column="0">
+      <widget class="QwtSlider" name="VolumeSlider">
+       <property name="value">
+        <double>100.000000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="3">
+      <widget class="QwtSlider" name="Slider3"/>
+     </item>
+     <item row="0" column="1">
+      <widget class="QwtSlider" name="Slider1"/>
+     </item>
+     <item row="0" column="6">
+      <widget class="QwtSlider" name="Slider6"/>
+     </item>
+     <item row="1" column="3">
+      <widget class="QwtTextLabel" name="slider3_label"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QwtTextLabel" name="General_volume_label">
+       <property name="plainText">
+        <string>General volume</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QwtTextLabel" name="slider1_label"/>
+     </item>
+     <item row="1" column="2">
+      <widget class="QwtTextLabel" name="slider2_label"/>
+     </item>
+     <item row="1" column="4">
+      <widget class="QwtTextLabel" name="slider6_label"/>
+     </item>
+     <item row="1" column="5">
+      <widget class="QwtTextLabel" name="slider4_label"/>
+     </item>
+     <item row="1" column="6">
+      <widget class="QwtTextLabel" name="slider5_label"/>
+     </item>
+    </layout>
+   </widget>
+   <widget class="Line" name="line">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>490</y>
+      <width>1281</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -138,6 +213,11 @@
    <class>QwtPlot</class>
    <extends>QFrame</extends>
    <header>qwt_plot.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QwtSlider</class>
+   <extends>QWidget</extends>
+   <header>qwt_slider.h</header>
   </customwidget>
   <customwidget>
    <class>QwtTextLabel</class>

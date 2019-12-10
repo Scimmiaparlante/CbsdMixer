@@ -25,10 +25,12 @@ public:
 
 public slots:
     void replot();
+    void update_filter(double val);
 
 private:
     Ui::PlotWindow *ui;
-    QwtPlotCurve *curve;
+    QwtPlotCurve *curve_pre;
+    QwtPlotCurve *curve_post;
     QTimer *plotTimer;
     Mixer *myMixer;
     std::thread* mixerThread;

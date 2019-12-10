@@ -2,6 +2,7 @@
 #define MIXER_H
 
 #include <vector>
+#include <math.h>
 
 #include "audioio.h"
 
@@ -26,9 +27,10 @@ class Mixer
 {
 private:
     //configuration data
-    std::vector<float> frequencies;
+    std::vector<double> frequencies;
     FilteringShape shape;
     WindowingFucntion wind;
+    std::vector<double> filter_factors;
 
     //buffers
     double* rawData_d;
@@ -47,18 +49,25 @@ private:
     fftw_plan direct_plan;
     fftw_plan inverse_plan;
 
-    double fftw_complex_mod(fftw_complex c);
+    //utility functions
+    double inline fftw_complex_mod(fftw_complex c) { return sqrt(c[0]*c[0] + c[1]*c[1]);}
+
+    //filters functions
+    void apply_filter();
+    void apply_rectangular_filter();
+    void apply_triangular_filter();
 
 public:
-    Mixer(std::vector<float> frequencies_, FilteringShape shape_ = RECTANGULAR_FILTERING, WindowingFucntion wind_ = DISABLE_WINDOWING);
+    Mixer(std::vector<double> frequencies_, FilteringShape shape_ = RECTANGULAR_FILTERING, WindowingFucntion wind_ = DISABLE_WINDOWING);
     ~Mixer();
 
     [[noreturn]] void start();
 
-    double* get_rawData()           {return rawData_d;}
-    double* get_rawFrequencies()    {return rawFrequencies_d;}
+    double* get_rawData()               {return rawData_d;}
+    double* get_rawFrequencies()        {return rawFrequencies_d;}
+    double* get_processedFrequencies()  {return processedFrequencies_d;}
 
-
+    int set_filterValue(int n_filter, double value);
 
 
 };

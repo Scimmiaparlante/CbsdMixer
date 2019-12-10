@@ -1,10 +1,10 @@
 #include "mixer.h"
 
-#include <math.h>
+#include <iostream>
 
-
-Mixer::Mixer(std::vector<float> frequencies_, FilteringShape shape_, WindowingFucntion wind_)
+Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingFucntion wind_)
 {
+    //copy construction data
     frequencies = frequencies_;
     shape = shape_;
     wind = wind_;
@@ -27,38 +27,93 @@ Mixer::Mixer(std::vector<float> frequencies_, FilteringShape shape_, WindowingFu
     direct_plan = fftw_plan_dft_r2c_1d(NUM_SAMPLES, rawData_d, rawFrequencies_c, 0);
     inverse_plan = fftw_plan_dft_c2r_1d(NUM_SAMPLES, rawFrequencies_c/*processedFrequencies_c*/, processedData_d, FFTW_PRESERVE_INPUT);
 
+    //reset filter factors to 1
+    for(unsigned long i = 0; i < frequencies.size(); ++i)
+        filter_factors.push_back(1);
 }
 
 void Mixer::start()
 {
-    while (true)
+    while(true)
     {
         //read data from the input
         device->input_read(rawData_i);
 
         //conversion of the array to double
-        for (int i = 0; i < NUM_SAMPLES; ++i)
+        for(int i = 0; i < NUM_SAMPLES; ++i)
             rawData_d[i] = static_cast<double>(rawData_i[i]);
 
         //go to frequenct domain
         fftw_execute(direct_plan);
 
         //double output for the users  (and the filter??)
-        for (int i = 0; i < COMP_SAMPLES; ++i)
-            rawFrequencies_d[i] = sqrt((rawFrequencies_c[i][0] * rawFrequencies_c[i][0]) + (rawFrequencies_c[i][1] * rawFrequencies_c[i][1]));
+        for(int i = 0; i < COMP_SAMPLES; ++i)
+            rawFrequencies_d[i] = fftw_complex_mod(rawFrequencies_c[i]);
 
         //filter
+        apply_filter();
+
         //return to time
-        fftw_execute(inverse_plan);
+        //fftw_execute(inverse_plan);
 
         //normalization and integer conversion
-        for (int i = 0; i < NUM_SAMPLES; ++i) {
+        for(int i = 0; i < NUM_SAMPLES; ++i) {
             processedData_d[i] /= static_cast<double>(NUM_SAMPLES);
             processedData_i[i] = static_cast<int16_t>(processedData_d[i]);
         }
 
         //output
+        //device->output_write(processed_data);
     }
+}
+
+
+void Mixer::apply_filter()
+{
+    //choose the correct type of filter
+    if(shape == RECTANGULAR_FILTERING)
+        apply_rectangular_filter();
+    else if(shape == TRIANGULAR_FILTERING)
+        apply_triangular_filter();
+}
+
+void Mixer::apply_rectangular_filter()
+{
+    unsigned long part = 0;
+    unsigned long len = frequencies.size();
+
+    for(unsigned long i = 0; i < COMP_SAMPLES; ++i)
+    {
+        double f = i*SAMPLE_RATE/NUM_SAMPLES;
+
+        if(f < (frequencies[0] + frequencies[1])/2)
+            processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[0];
+        else if(f > (frequencies[len-1] + frequencies[len-2])/2)
+            processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[len - 1];
+        else if(f > (frequencies[part] + frequencies[part-1])/2 && f < (frequencies[part]+frequencies[part+1])/2)
+            processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[part + 1];
+        else {
+            part++; i--;
+        }
+    }
+}
+
+void Mixer::apply_triangular_filter()
+{
+
+}
+
+
+int Mixer::set_filterValue(int n_filter, double value)
+{
+    unsigned long len = frequencies.size();
+
+    if (n_filter >= static_cast<int>(len))
+        return -1;
+
+    filter_factors[static_cast<unsigned long>(n_filter)] = value;
+
+    return 0;
 }
 
 
@@ -77,6 +132,6 @@ Mixer::~Mixer()
     delete device;
 
     fftw_destroy_plan(direct_plan);
-    //fftw_destroy_plan(inverse_plan);
-
+    fftw_destroy_plan(inverse_plan);
 }
+
