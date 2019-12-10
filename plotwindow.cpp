@@ -2,10 +2,12 @@
 #include "ui_plotwindow.h"
 #include <qwt_scale_engine.h>
 
-#define MAX_Y 1000000000
+#define MAX_Y 100000000
 
 #define MIN_AMPL -10
 #define MAX_AMPL 10
+
+#define NUM_SLIDERS 7
 
 
 PlotWindow::PlotWindow(QWidget *parent) :
@@ -18,15 +20,15 @@ PlotWindow::PlotWindow(QWidget *parent) :
     ui->preFrequencyPlot->setAxisAutoScale(QwtPlot::yLeft, false);
     ui->preFrequencyPlot->setAxisScale(QwtPlot::yLeft, 1, MAX_Y);
     ui->preFrequencyPlot->setAxisScaleEngine( QwtPlot::yLeft, new QwtLogScaleEngine );
-    ui->preFrequencyPlot->setAxisScale(QwtPlot::xBottom, 100, SAMPLE_RATE/2);
-    //ui->preFrequencyPlot->setAxisScaleEngine( QwtPlot::xBottom, new QwtLogScaleEngine );
+    ui->preFrequencyPlot->setAxisScale(QwtPlot::xBottom, SAMPLE_RATE/NUM_SAMPLES, SAMPLE_RATE/2);
+    ui->preFrequencyPlot->setAxisScaleEngine( QwtPlot::xBottom, new QwtLogScaleEngine );
 
     //set up the second plot
     ui->postFrequencyPlot->setAxisAutoScale(QwtPlot::yLeft, false);
     ui->postFrequencyPlot->setAxisScale(QwtPlot::yLeft, 1, MAX_Y);
     ui->postFrequencyPlot->setAxisScaleEngine( QwtPlot::yLeft, new QwtLogScaleEngine );
-    ui->postFrequencyPlot->setAxisScale(QwtPlot::xBottom, 100, SAMPLE_RATE/2);
-    //ui->postFrequencyPlot->setAxisScaleEngine( QwtPlot::xBottom, new QwtLogScaleEngine );
+    ui->postFrequencyPlot->setAxisScale(QwtPlot::xBottom, SAMPLE_RATE/NUM_SAMPLES, SAMPLE_RATE/2);
+    ui->postFrequencyPlot->setAxisScaleEngine( QwtPlot::xBottom, new QwtLogScaleEngine );
 
     //create curve for plot 1
     curve_pre = new QwtPlotCurve();
@@ -44,7 +46,7 @@ PlotWindow::PlotWindow(QWidget *parent) :
     //decide the mixer's frequencies
     std::vector<double> freq = {60, 170, 500, 1000, 5000, 12000};
 
-    for(int i = 1; i <= 7; ++i)
+    for(int i = 1; i < NUM_SLIDERS; ++i)
     {
         //initialize labels
         unsigned long index = static_cast<unsigned long>(i-1);
@@ -64,7 +66,12 @@ PlotWindow::PlotWindow(QWidget *parent) :
         QwtSlider* slider = reinterpret_cast<QwtSlider*>(item->widget());
         if (slider != nullptr)
             slider->setScale(MIN_AMPL, MAX_AMPL);
+
+        connect(slider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
     }
+
+    //init volume slider event
+    connect(ui->VolumeSlider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
 
     //mixer startup
     myMixer = new Mixer(freq);
@@ -115,11 +122,24 @@ void PlotWindow::update_filter(double val)
 {
     QwtSlider* sender = reinterpret_cast<QwtSlider*>(QObject::sender());
 
+    int i;
+    for(i = 0; i <= NUM_SLIDERS; ++i)
+    {
+        //search which slider have been updated
+        QLayoutItem* item = ui->Sliders_pane->itemAtPosition(0, i);
+        if(item == nullptr)
+            return;
 
-    //if (sender == reinterpret_cast<QwtSlider*>(ui->Sliders_pane->itemAt(0)))
-      //  ;
+        QwtSlider* slider = reinterpret_cast<QwtSlider*>(item->widget());
+        if (slider == nullptr)
+            return;
 
+        if(slider == sender)
+            break;
+    }
 
-
-
+    if(i == 0)
+        myMixer->set_volume(val/100);
+    else
+        myMixer->set_filterValue(i-1, pow(10, val));
 }

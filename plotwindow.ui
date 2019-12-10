@@ -132,6 +132,9 @@
      </item>
      <item row="0" column="0">
       <widget class="QwtSlider" name="VolumeSlider">
+       <property name="upperBound">
+        <double>200.000000000000000</double>
+       </property>
        <property name="value">
         <double>100.000000000000000</double>
        </property>

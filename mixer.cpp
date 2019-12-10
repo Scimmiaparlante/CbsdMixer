@@ -27,9 +27,10 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     direct_plan = fftw_plan_dft_r2c_1d(NUM_SAMPLES, rawData_d, rawFrequencies_c, 0);
     inverse_plan = fftw_plan_dft_c2r_1d(NUM_SAMPLES, rawFrequencies_c/*processedFrequencies_c*/, processedData_d, FFTW_PRESERVE_INPUT);
 
-    //reset filter factors to 1
+    //reset filter factors and volume to 1
     for(unsigned long i = 0; i < frequencies.size(); ++i)
         filter_factors.push_back(1);
+    volume = 1;
 }
 
 void Mixer::start()
@@ -90,11 +91,14 @@ void Mixer::apply_rectangular_filter()
             processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[0];
         else if(f > (frequencies[len-1] + frequencies[len-2])/2)
             processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[len - 1];
-        else if(f > (frequencies[part] + frequencies[part-1])/2 && f < (frequencies[part]+frequencies[part+1])/2)
-            processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[part + 1];
+        else if(part > 0 && part < (len-1) && f > (frequencies[part] + frequencies[part-1])/2 && f < (frequencies[part]+frequencies[part+1])/2)
+            processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[part];
         else {
             part++; i--;
         }
+
+        //apply volume
+        processedFrequencies_d[i] *= volume;
     }
 }
 
@@ -107,7 +111,6 @@ void Mixer::apply_triangular_filter()
 int Mixer::set_filterValue(int n_filter, double value)
 {
     unsigned long len = frequencies.size();
-
     if (n_filter >= static_cast<int>(len))
         return -1;
 

@@ -31,6 +31,7 @@ private:
     FilteringShape shape;
     WindowingFucntion wind;
     std::vector<double> filter_factors;
+    double volume;
 
     //buffers
     double* rawData_d;
@@ -68,6 +69,7 @@ public:
     double* get_processedFrequencies()  {return processedFrequencies_d;}
 
     int set_filterValue(int n_filter, double value);
+    void set_volume(double value)       {volume = value;}
 
 
 };
