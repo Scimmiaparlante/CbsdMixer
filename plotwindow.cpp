@@ -74,7 +74,7 @@ PlotWindow::PlotWindow(QWidget *parent) :
     connect(ui->VolumeSlider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
 
     //mixer startup
-    myMixer = new Mixer(freq, TRIANGULAR_FILTERING);
+    myMixer = new Mixer(freq, COSINE_FILTERING);
     mixerThread = new std::thread(&Mixer::start, myMixer);
 
     //set timer to trigger the update function

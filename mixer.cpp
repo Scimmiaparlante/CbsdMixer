@@ -1,6 +1,5 @@
 #include "mixer.h"
 
-#include <iostream>
 
 Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingFucntion wind_)
 {
@@ -81,11 +80,18 @@ void Mixer::apply_filter()
 
 void Mixer::compute_filter()
 {
-    //choose the correct type of filter
-    if(shape == RECTANGULAR_FILTERING)
+    switch(shape)//choose the correct type of filter
+    {
+    case RECTANGULAR_FILTERING:
         compute_rectangular_filter();
-    else if(shape == TRIANGULAR_FILTERING)
+        break;
+    case TRIANGULAR_FILTERING:
         compute_triangular_filter();
+        break;
+    case COSINE_FILTERING:
+        compute_cosine_filter();
+        break;
+    }
 }
 
 void Mixer::compute_rectangular_filter()
@@ -129,6 +135,40 @@ void Mixer::compute_triangular_filter()
         {
             double n = (f - frequencies[part-1]) / (frequencies[part] - frequencies[part-1]);
             filter[i] = filter_factors[part] * n +  filter_factors[part-1] * (1-n);
+        }
+        else {
+            part++; i--;
+        }
+    }
+}
+
+
+void Mixer::compute_cosine_filter()
+{
+    unsigned long part = 0;
+    unsigned long len = frequencies.size();
+
+    for(unsigned long i = 0; i < COMP_SAMPLES; ++i)
+    {
+        double f = i*SAMPLE_RATE/NUM_SAMPLES;
+
+        if(f < frequencies[0])
+        {
+            double n = f / frequencies[0];
+            double n2 = (1 - cos(n * M_PI)) / 2;
+            filter[i] = filter_factors[0] * n2 + 1 * (1-n2);
+        }
+        else if(f > (frequencies[len-1]))
+        {
+            double n = (f - frequencies[len-1]) / (SAMPLE_RATE/2 - frequencies[len-1]);
+            double n2 = (1 - cos(n * M_PI)) / 2;
+            filter[i] = 1 * n2 + filter_factors[len-1] * (1-n2);
+        }
+        else if(part > 0 && part < (len) && f >= frequencies[part-1] && f <= frequencies[part])
+        {
+            double n = (f - frequencies[part-1]) / (frequencies[part] - frequencies[part-1]);
+            double n2 = (1 - cos(n * M_PI)) / 2;
+            filter[i] = filter_factors[part] * n2 + filter_factors[part-1] * (1-n2);
         }
         else {
             part++; i--;

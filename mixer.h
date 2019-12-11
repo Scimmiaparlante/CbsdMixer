@@ -14,7 +14,8 @@
 
 enum FilteringShape {
     RECTANGULAR_FILTERING,
-    TRIANGULAR_FILTERING
+    TRIANGULAR_FILTERING,
+    COSINE_FILTERING
 };
 
 enum WindowingFucntion {
@@ -62,6 +63,8 @@ private:
     void compute_filter();
     void compute_rectangular_filter();
     void compute_triangular_filter();
+    void compute_cosine_filter();
+
 
 public:
     Mixer(std::vector<double> frequencies_, FilteringShape shape_ = RECTANGULAR_FILTERING, WindowingFucntion wind_ = DISABLE_WINDOWING);
@@ -71,7 +74,7 @@ public:
 
     double* get_rawData()               {return rawData_d;}
     double* get_rawFrequencies()        {return rawFrequencies_d;}
-    double* get_processedFrequencies()  {return processedFrequencies_d;}
+    double* get_processedFrequencies()  {return filter;}//processedFrequencies_d;}
 
     int set_filterValue(int n_filter, double value);
     void set_volume(double value)       {volume = value;}
