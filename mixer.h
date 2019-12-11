@@ -33,6 +33,9 @@ private:
     std::vector<double> filter_factors;
     double volume;
 
+    //filter value for avery frequency
+    double* filter;
+
     //buffers
     double* rawData_d;
     double* processedData_d;
@@ -55,8 +58,10 @@ private:
 
     //filters functions
     void apply_filter();
-    void apply_rectangular_filter();
-    void apply_triangular_filter();
+
+    void compute_filter();
+    void compute_rectangular_filter();
+    void compute_triangular_filter();
 
 public:
     Mixer(std::vector<double> frequencies_, FilteringShape shape_ = RECTANGULAR_FILTERING, WindowingFucntion wind_ = DISABLE_WINDOWING);

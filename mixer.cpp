@@ -31,6 +31,10 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     for(unsigned long i = 0; i < frequencies.size(); ++i)
         filter_factors.push_back(1);
     volume = 1;
+
+    //allocate and initialize filter
+    filter = new double[COMP_SAMPLES];
+    compute_filter();
 }
 
 void Mixer::start()
@@ -71,14 +75,20 @@ void Mixer::start()
 
 void Mixer::apply_filter()
 {
-    //choose the correct type of filter
-    if(shape == RECTANGULAR_FILTERING)
-        apply_rectangular_filter();
-    else if(shape == TRIANGULAR_FILTERING)
-        apply_triangular_filter();
+    for(unsigned int i = 0; i < COMP_SAMPLES; ++i)
+        processedFrequencies_d[i] = volume*filter[i]*rawFrequencies_d[i];
 }
 
-void Mixer::apply_rectangular_filter()
+void Mixer::compute_filter()
+{
+    //choose the correct type of filter
+    if(shape == RECTANGULAR_FILTERING)
+        compute_rectangular_filter();
+    else if(shape == TRIANGULAR_FILTERING)
+        compute_triangular_filter();
+}
+
+void Mixer::compute_rectangular_filter()
 {
     unsigned long part = 0;
     unsigned long len = frequencies.size();
@@ -88,23 +98,42 @@ void Mixer::apply_rectangular_filter()
         double f = i*SAMPLE_RATE/NUM_SAMPLES;
 
         if(f < (frequencies[0] + frequencies[1])/2)
-            processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[0];
+            filter[i] = filter_factors[0];
         else if(f > (frequencies[len-1] + frequencies[len-2])/2)
-            processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[len - 1];
+            filter[i] = filter_factors[len - 1];
         else if(part > 0 && part < (len-1) && f > (frequencies[part] + frequencies[part-1])/2 && f < (frequencies[part]+frequencies[part+1])/2)
-            processedFrequencies_d[i] = rawFrequencies_d[i] * filter_factors[part];
+            filter[i] = filter_factors[part];
         else {
             part++; i--;
         }
-
-        //apply volume
-        processedFrequencies_d[i] *= volume;
     }
 }
 
-void Mixer::apply_triangular_filter()
+void Mixer::compute_triangular_filter()
 {
+    unsigned long part = 0;
+    unsigned long len = frequencies.size();
 
+    for(unsigned long i = 0; i < COMP_SAMPLES; ++i)
+    {
+        double f = i*SAMPLE_RATE/NUM_SAMPLES;
+
+        if(f < frequencies[0])
+            filter[i] = 1 + (filter_factors[0]-1)*f/frequencies[0];
+        else if(f > (frequencies[len-1]))
+        {
+            double n = (f - frequencies[len-1]) / (SAMPLE_RATE/2 - frequencies[len-1]);
+            filter[i] = 1 * n +  filter_factors[len-1] * (1-n);
+        }
+        else if(part > 0 && part < (len) && f >= frequencies[part-1] && f <= frequencies[part])
+        {
+            double n = (f - frequencies[part-1]) / (frequencies[part] - frequencies[part-1]);
+            filter[i] = filter_factors[part] * n +  filter_factors[part-1] * (1-n);
+        }
+        else {
+            part++; i--;
+        }
+    }
 }
 
 
@@ -115,6 +144,9 @@ int Mixer::set_filterValue(int n_filter, double value)
         return -1;
 
     filter_factors[static_cast<unsigned long>(n_filter)] = value;
+
+    //recompute the filter's values
+    compute_filter();
 
     return 0;
 }

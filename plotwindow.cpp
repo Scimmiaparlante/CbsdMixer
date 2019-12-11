@@ -74,13 +74,13 @@ PlotWindow::PlotWindow(QWidget *parent) :
     connect(ui->VolumeSlider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
 
     //mixer startup
-    myMixer = new Mixer(freq);
+    myMixer = new Mixer(freq, TRIANGULAR_FILTERING);
     mixerThread = new std::thread(&Mixer::start, myMixer);
 
     //set timer to trigger the update function
     plotTimer = new QTimer(nullptr);
     connect(plotTimer, SIGNAL(timeout()), this, SLOT(replot()));
-    plotTimer->start(50);
+    plotTimer->start(1000*NUM_SAMPLES/SAMPLE_RATE);
 }
 
 PlotWindow::~PlotWindow()
