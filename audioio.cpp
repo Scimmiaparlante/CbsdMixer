@@ -27,7 +27,7 @@ void AudioIO::input_init()
 
     //---------------------INPUT SETUP------------------------------------------------*/
 
-    ret = snd_pcm_open(&capture_handle_in, device.c_str(), SND_PCM_STREAM_CAPTURE, 0);
+    ret = snd_pcm_open(&capture_handle_in, device.c_str(), SND_PCM_STREAM_CAPTURE, SND_PCM_ASYNC);
     if (ret < 0)
         error("cannot open audio device", ret);
 
@@ -67,7 +67,7 @@ void AudioIO::input_init()
 
     //---------------------OUTPUT SETUP------------------------------------------------*/
 
-    ret = snd_pcm_open(&capture_handle_out, device.c_str(), SND_PCM_STREAM_PLAYBACK, 0);
+    ret = snd_pcm_open(&capture_handle_out, device.c_str(), SND_PCM_STREAM_PLAYBACK, SND_PCM_ASYNC);
     if (ret  < 0)
         error("cannot open audio device", ret);
 
@@ -104,7 +104,7 @@ void AudioIO::input_init()
     if (ret < 0)
         error("cannot set parameters", ret);
 
-    snd_pcm_hw_params_free (hw_params);
+    snd_pcm_hw_params_free(hw_params);
 
     ret = snd_pcm_prepare(capture_handle_out);
     if (ret < 0)
@@ -143,13 +143,14 @@ int AudioIO::output_write(int16_t* buf)
 
     while(to_write > 0)
     {
+        snd_pcm_prepare(capture_handle_out);
+
         ret = snd_pcm_writei(capture_handle_out, buf, to_write);
         if (ret < 0) {
             std::cerr << "write to audio interface failed: " << snd_strerror(static_cast<int>(ret)) << std::endl;
             return 1;
         }
 
-        snd_pcm_prepare(capture_handle_out);
         buf += ret;
         to_write -= ret;
     }

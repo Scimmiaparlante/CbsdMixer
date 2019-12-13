@@ -3,14 +3,18 @@
 
 #include <vector>
 #include <math.h>
+#include <mutex>
 
 #include "audioio.h"
 
 #define SAMPLE_RATE     44100
-#define NUM_SAMPLES     2048
+#define NUM_SAMPLES     4096
 #define DEF_DEVICE      "default"
 
 #define COMP_SAMPLES    ((NUM_SAMPLES/2) + 1)
+
+#define WINDOW_SIZE     200
+
 
 enum FilteringShape {
     RECTANGULAR_FILTERING,
@@ -54,6 +58,9 @@ private:
     fftw_plan direct_plan;
     fftw_plan inverse_plan;
 
+    //in-out mutex
+    std::mutex m;
+
     //utility functions
     double inline fftw_complex_mod(fftw_complex c) { return sqrt(c[0]*c[0] + c[1]*c[1]);}
 
@@ -73,6 +80,7 @@ public:
     [[noreturn]] void start();
 
     double* get_rawData()               {return rawData_d;}
+    double* get_processedData()         {return processedData_d;}
     double* get_rawFrequencies();
     double* get_processedFrequencies();
 

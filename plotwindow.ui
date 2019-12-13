@@ -209,6 +209,16 @@
    </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionFrequency">
+   <property name="text">
+    <string>Frequency</string>
+   </property>
+  </action>
+  <action name="actionTime">
+   <property name="text">
+    <string>Time</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>

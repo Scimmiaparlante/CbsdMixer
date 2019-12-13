@@ -40,6 +40,7 @@ void Mixer::start()
 {
     while(true)
     {
+        //memcpy(rawData_i + NUM_SAMPLES - WINDOW_SIZE, rawData_i, WINDOW_SIZE);
         //read data from the input
         device->input_read(rawData_i);
 
@@ -66,6 +67,7 @@ void Mixer::start()
         device->output_write(processedData_i);
     }
 }
+
 
 
 void Mixer::apply_filter()

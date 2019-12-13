@@ -2,7 +2,7 @@
 #include "ui_plotwindow.h"
 #include <qwt_scale_engine.h>
 
-#define MAX_Y 100000000
+#define MAX_Y 1000000000
 
 #define MIN_AMPL -10
 #define MAX_AMPL 10
@@ -73,7 +73,7 @@ PlotWindow::PlotWindow(QWidget *parent) :
     //init volume slider event
     connect(ui->VolumeSlider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
 
-    //mixer startup
+    //mixer startup (+ start reproduction)
     myMixer = new Mixer(freq, COSINE_FILTERING);
     mixerThread = new std::thread(&Mixer::start, myMixer);
 
