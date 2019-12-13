@@ -2,13 +2,13 @@
 
 #include <iostream>
 
-AudioIO::AudioIO(std::string device_, unsigned int num_samples_, unsigned int sample_rate_)
+AudioIO::AudioIO(const char* deviceIn_, const char* deviceOut_, unsigned int num_samples_, unsigned int sample_rate_)
 {
-    device = device_;
     num_samples = num_samples_;
     sample_rate = sample_rate_;
 
-    input_init();
+    input_init(deviceIn_);
+    output_init(deviceOut_);
 }
 
 AudioIO::~AudioIO()
@@ -20,14 +20,14 @@ AudioIO::~AudioIO()
 }
 
 
-void AudioIO::input_init()
+void AudioIO::input_init(const char* dev)
 {
     int ret;
     snd_pcm_hw_params_t *hw_params;
 
     //---------------------INPUT SETUP------------------------------------------------*/
 
-    ret = snd_pcm_open(&capture_handle_in, device.c_str(), SND_PCM_STREAM_CAPTURE, SND_PCM_ASYNC);
+    ret = snd_pcm_open(&capture_handle_in, dev, SND_PCM_STREAM_CAPTURE, SND_PCM_ASYNC);
     if (ret < 0)
         error("cannot open audio device", ret);
 
@@ -64,10 +64,16 @@ void AudioIO::input_init()
     ret = snd_pcm_prepare(capture_handle_in);
     if(ret < 0)
         error("cannot prepare audio interface for use", ret);
+}
+
+void AudioIO::output_init(const char *dev)
+{
+    int ret;
+    snd_pcm_hw_params_t *hw_params;
 
     //---------------------OUTPUT SETUP------------------------------------------------*/
 
-    ret = snd_pcm_open(&capture_handle_out, device.c_str(), SND_PCM_STREAM_PLAYBACK, SND_PCM_ASYNC);
+    ret = snd_pcm_open(&capture_handle_out, dev, SND_PCM_STREAM_PLAYBACK, SND_PCM_ASYNC);
     if (ret  < 0)
         error("cannot open audio device", ret);
 
@@ -159,7 +165,7 @@ int AudioIO::output_write(int16_t* buf)
 }
 
 
-void AudioIO::error(std::string mess, int err)
+void AudioIO::error(const char* mess, int err)
 {
     std::cerr << "Input device error: " << mess << " (" << snd_strerror(err) << ")" << std::endl;
     exit(1);

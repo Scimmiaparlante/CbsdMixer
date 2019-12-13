@@ -9,7 +9,9 @@
 
 #define SAMPLE_RATE     44100
 #define NUM_SAMPLES     4096
-#define DEF_DEVICE      "default"
+#define DEF_DEVICE_IN   "default"
+#define DEF_DEVICE_OUT  "default"
+
 
 #define COMP_SAMPLES    ((NUM_SAMPLES/2) + 1)
 
@@ -57,9 +59,6 @@ private:
     //fft plans
     fftw_plan direct_plan;
     fftw_plan inverse_plan;
-
-    //in-out mutex
-    std::mutex m;
 
     //utility functions
     double inline fftw_complex_mod(fftw_complex c) { return sqrt(c[0]*c[0] + c[1]*c[1]);}

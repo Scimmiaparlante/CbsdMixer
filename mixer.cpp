@@ -20,7 +20,7 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     processedFrequencies_d = new double[COMP_SAMPLES];
 
     //allocate device
-    device = new AudioIO(DEF_DEVICE, NUM_SAMPLES, SAMPLE_RATE);
+    device = new AudioIO(DEF_DEVICE_IN, DEF_DEVICE_OUT, NUM_SAMPLES, SAMPLE_RATE);
 
     //prepare fft
     direct_plan = fftw_plan_dft_r2c_1d(NUM_SAMPLES, rawData_d, rawFrequencies_c, 0);
