@@ -73,8 +73,8 @@ public:
     [[noreturn]] void start();
 
     double* get_rawData()               {return rawData_d;}
-    double* get_rawFrequencies()        {return rawFrequencies_d;}
-    double* get_processedFrequencies()  {return filter;}//processedFrequencies_d;}
+    double* get_rawFrequencies();
+    double* get_processedFrequencies();
 
     int set_filterValue(int n_filter, double value);
     void set_volume(double value)       {volume = value;}

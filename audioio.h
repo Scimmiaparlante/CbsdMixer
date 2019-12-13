@@ -14,13 +14,15 @@ public:
     ~AudioIO();
 
     int input_read(int16_t* buf);
+    int output_write(int16_t* buf);
 
 private:
     std::string device;
     unsigned int num_samples;
     unsigned int sample_rate;
 
-    snd_pcm_t* capture_handle;
+    snd_pcm_t* capture_handle_in;
+    snd_pcm_t* capture_handle_out;
 
     void input_init();
     [[noreturn]] void error(std::string mess, int err);

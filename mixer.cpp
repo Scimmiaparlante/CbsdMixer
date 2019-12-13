@@ -24,7 +24,7 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
 
     //prepare fft
     direct_plan = fftw_plan_dft_r2c_1d(NUM_SAMPLES, rawData_d, rawFrequencies_c, 0);
-    inverse_plan = fftw_plan_dft_c2r_1d(NUM_SAMPLES, rawFrequencies_c/*processedFrequencies_c*/, processedData_d, FFTW_PRESERVE_INPUT);
+    inverse_plan = fftw_plan_dft_c2r_1d(NUM_SAMPLES, processedFrequencies_c, processedData_d, FFTW_PRESERVE_INPUT);
 
     //reset filter factors and volume to 1
     for(unsigned long i = 0; i < frequencies.size(); ++i)
@@ -50,15 +50,11 @@ void Mixer::start()
         //go to frequenct domain
         fftw_execute(direct_plan);
 
-        //double output for the users  (and the filter??)
-        for(int i = 0; i < COMP_SAMPLES; ++i)
-            rawFrequencies_d[i] = fftw_complex_mod(rawFrequencies_c[i]);
-
         //filter
         apply_filter();
 
         //return to time
-        //fftw_execute(inverse_plan);
+        fftw_execute(inverse_plan);
 
         //normalization and integer conversion
         for(int i = 0; i < NUM_SAMPLES; ++i) {
@@ -67,7 +63,7 @@ void Mixer::start()
         }
 
         //output
-        //device->output_write(processed_data);
+        device->output_write(processedData_i);
     }
 }
 
@@ -75,7 +71,10 @@ void Mixer::start()
 void Mixer::apply_filter()
 {
     for(unsigned int i = 0; i < COMP_SAMPLES; ++i)
-        processedFrequencies_d[i] = volume*filter[i]*rawFrequencies_d[i];
+    {
+        processedFrequencies_c[i][0] = volume*filter[i]*rawFrequencies_c[i][0];
+        processedFrequencies_c[i][1] = volume*filter[i]*rawFrequencies_c[i][1];
+    }
 }
 
 void Mixer::compute_filter()
@@ -189,6 +188,24 @@ int Mixer::set_filterValue(int n_filter, double value)
     compute_filter();
 
     return 0;
+}
+
+
+double* Mixer::get_rawFrequencies()
+{
+    for(int i = 0; i < COMP_SAMPLES; ++i)
+        rawFrequencies_d[i] = fftw_complex_mod(rawFrequencies_c[i]);
+
+    return rawFrequencies_d;
+
+}
+
+double* Mixer::get_processedFrequencies()
+{
+    for(int i = 0; i < COMP_SAMPLES; ++i)
+        processedFrequencies_d[i] = fftw_complex_mod(processedFrequencies_c[i]);
+
+    return processedFrequencies_d;
 }
 
 
