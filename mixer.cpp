@@ -1,5 +1,7 @@
 #include "mixer.h"
 
+#include <sched.h>
+
 
 Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingFucntion wind_)
 {
@@ -38,6 +40,12 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
 
 void Mixer::start()
 {
+    //make this a real-time thread
+    sched_param p;
+    sched_getparam(0, &p);
+    p.sched_priority = sched_get_priority_max(SCHED_RR);
+    sched_setscheduler(0, SCHED_RR, &p);
+
     while(true)
     {
         //memcpy(rawData_i + NUM_SAMPLES - WINDOW_SIZE, rawData_i, WINDOW_SIZE);
