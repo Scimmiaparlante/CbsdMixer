@@ -4,6 +4,7 @@
 #include <vector>
 #include <math.h>
 #include <mutex>
+#include <atomic>
 
 #include "audioio.h"
 
@@ -15,7 +16,7 @@
 
 #define COMP_SAMPLES    ((NUM_SAMPLES/2) + 1)
 
-#define WINDOW_SIZE     200
+
 
 
 enum FilteringShape {
@@ -43,33 +44,41 @@ private:
     //filter value for avery frequency
     double* filter;
 
-    //buffers
-    double* rawData_d;
-    double* processedData_d;
-    double* rawFrequencies_d;
-    double* processedFrequencies_d;
-    int16_t* rawData_i;
-    int16_t* processedData_i;
-    fftw_complex* rawFrequencies_c;
-    fftw_complex* processedFrequencies_c;
+    //variable to state which is the active buffer
+    std::atomic<unsigned int> active_buffer;
+
+    //buffers couples
+    double** rawData_d;
+    double** processedData_d;
+    double** rawFrequencies_d;
+    double** processedFrequencies_d;
+    int16_t** rawData_i;
+    int16_t** processedData_i;
+    fftw_complex** rawFrequencies_c;
+    fftw_complex** processedFrequencies_c;
 
     //AudioIO object to retrieve data
     AudioIO* device;
 
-    //fft plans
-    fftw_plan direct_plan;
-    fftw_plan inverse_plan;
+    //fft plans couples
+    fftw_plan* direct_plan;
+    fftw_plan* inverse_plan;
 
     //utility functions
     double inline fftw_complex_mod(fftw_complex c) { return sqrt(c[0]*c[0] + c[1]*c[1]);}
 
     //filters functions
-    void apply_filter();
+    void apply_filter(unsigned int num_buf);
 
     void compute_filter();
     void compute_rectangular_filter();
     void compute_triangular_filter();
     void compute_cosine_filter();
+
+    //functions to get the correct buffer index
+    inline unsigned int get_active_buffer() {return active_buffer;}
+    inline unsigned int get_inactive_buffer() {return ((active_buffer == 0) ? 1 : 0);} //only because we have two buffers
+
 
 
 public:
@@ -78,8 +87,8 @@ public:
 
     [[noreturn]] void start();
 
-    double* get_rawData()               {return rawData_d;}
-    double* get_processedData()         {return processedData_d;}
+    inline double* get_rawData()                {return rawData_d[get_inactive_buffer()];}
+    inline double*  get_processedData()         {return processedData_d[get_inactive_buffer()];}
     double* get_rawFrequencies();
     double* get_processedFrequencies();
 

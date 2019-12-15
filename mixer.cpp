@@ -2,6 +2,8 @@
 
 #include <sched.h>
 
+#define NUM_BUFFERS 2 //DO NOT MODIFY! The implementation of get_inactive_buffer() requires it to be 2
+
 
 Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingFucntion wind_)
 {
@@ -10,23 +12,46 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     shape = shape_;
     wind = wind_;
 
-    //allocate buffers
-    rawData_i = new int16_t[NUM_SAMPLES]();
-    processedData_i = new int16_t[NUM_SAMPLES]();
-    rawFrequencies_c = new fftw_complex[COMP_SAMPLES]();
-    processedFrequencies_c = new fftw_complex[COMP_SAMPLES]();
+    //array of buffers creation
+    rawData_i = new int16_t*[NUM_BUFFERS];
+    processedData_i = new int16_t*[NUM_BUFFERS];
+    rawFrequencies_c = new fftw_complex*[NUM_BUFFERS];
+    processedFrequencies_c = new fftw_complex*[NUM_BUFFERS];
 
-    rawData_d = new double[NUM_SAMPLES];
-    processedData_d = new double[NUM_SAMPLES];
-    rawFrequencies_d = new double[COMP_SAMPLES];
-    processedFrequencies_d = new double[COMP_SAMPLES];
+    rawData_d = new double*[NUM_BUFFERS];
+    processedData_d = new double*[NUM_BUFFERS];
+    rawFrequencies_d = new double*[NUM_BUFFERS];
+    processedFrequencies_d = new double*[NUM_BUFFERS];
+
+    //fft plans arrays
+    direct_plan = new fftw_plan[2];
+    inverse_plan = new fftw_plan[2];
+
+    for (int i = 0; i < NUM_BUFFERS; ++i)
+    {
+        //allocate buffers
+        rawData_i[i] = new int16_t[NUM_SAMPLES];
+        processedData_i[i] = new int16_t[NUM_SAMPLES];
+        rawFrequencies_c[i] = new fftw_complex[COMP_SAMPLES];
+        processedFrequencies_c[i] = new fftw_complex[COMP_SAMPLES];
+
+        rawData_d[i] = new double[NUM_SAMPLES];
+        processedData_d[i] = new double[NUM_SAMPLES];
+        rawFrequencies_d[i] = new double[COMP_SAMPLES];
+        processedFrequencies_d[i] = new double[COMP_SAMPLES];
+
+        //prepare fft plans
+        direct_plan[i] = fftw_plan_dft_r2c_1d(NUM_SAMPLES, rawData_d[i], rawFrequencies_c[i], 0);
+        inverse_plan[i] = fftw_plan_dft_c2r_1d(NUM_SAMPLES, processedFrequencies_c[i], processedData_d[i], FFTW_PRESERVE_INPUT);
+    }
+
+    active_buffer = 0;
+//    memset(rawData_i[active_buffer], 0, NUM_SAMPLES*sizeof(int16_t)); //set to 0 the buffer to avoid initial peak
+//    memset(rawFrequencies_c[active_buffer], 0, NUM_SAMPLES*sizeof(fftw_complex)); //set to 0 the buffer
+//    memset(processedFrequencies_c[active_buffer], 0, NUM_SAMPLES*sizeof(fftw_complex)); //set to 0 the buffer
 
     //allocate device
     device = new AudioIO(DEF_DEVICE_IN, DEF_DEVICE_OUT, NUM_SAMPLES, SAMPLE_RATE);
-
-    //prepare fft
-    direct_plan = fftw_plan_dft_r2c_1d(NUM_SAMPLES, rawData_d, rawFrequencies_c, 0);
-    inverse_plan = fftw_plan_dft_c2r_1d(NUM_SAMPLES, processedFrequencies_c, processedData_d, FFTW_PRESERVE_INPUT);
 
     //reset filter factors and volume to 1
     for(unsigned long i = 0; i < frequencies.size(); ++i)
@@ -46,44 +71,49 @@ void Mixer::start()
     p.sched_priority = sched_get_priority_max(SCHED_RR);
     sched_setscheduler(0, SCHED_RR, &p);
 
+    unsigned int inactive_buf;
+
     while(true)
     {
-        //memcpy(rawData_i + NUM_SAMPLES - WINDOW_SIZE, rawData_i, WINDOW_SIZE);
-        //read data from the input
-        device->input_read(rawData_i);
+        //buffer switch
+        inactive_buf = active_buffer;
+        active_buffer = get_inactive_buffer();
+
+        //read data from the input to the active buffer
+        device->input_read(rawData_i[active_buffer]);
 
         //conversion of the array to double
         for(int i = 0; i < NUM_SAMPLES; ++i)
-            rawData_d[i] = static_cast<double>(rawData_i[i]);
+            rawData_d[inactive_buf][i] = static_cast<double>(rawData_i[inactive_buf][i]);
 
         //go to frequenct domain
-        fftw_execute(direct_plan);
+        fftw_execute(direct_plan[inactive_buf]);
 
         //filter
-        apply_filter();
+        apply_filter(inactive_buf);
 
         //return to time
-        fftw_execute(inverse_plan);
+        fftw_execute(inverse_plan[inactive_buf]);
 
         //normalization and integer conversion
         for(int i = 0; i < NUM_SAMPLES; ++i) {
-            processedData_d[i] /= static_cast<double>(NUM_SAMPLES);
-            processedData_i[i] = static_cast<int16_t>(processedData_d[i]);
+            processedData_d[inactive_buf][i] /= static_cast<double>(NUM_SAMPLES);
+            processedData_i[inactive_buf][i] = static_cast<int16_t>(processedData_d[inactive_buf][i]);
         }
 
         //output
-        device->output_write(processedData_i);
+        device->output_write(processedData_i[inactive_buf]);
     }
 }
 
 
 
-void Mixer::apply_filter()
+void Mixer::apply_filter(unsigned int num_buf)
 {
     for(unsigned int i = 0; i < COMP_SAMPLES; ++i)
     {
-        processedFrequencies_c[i][0] = volume*filter[i]*rawFrequencies_c[i][0];
-        processedFrequencies_c[i][1] = volume*filter[i]*rawFrequencies_c[i][1];
+        processedFrequencies_c[num_buf][i][0] = volume*filter[i]*rawFrequencies_c[num_buf][i][0];
+        processedFrequencies_c[num_buf][i][1] = volume*filter[i]*rawFrequencies_c[num_buf][i][1];
     }
 }
 
@@ -203,24 +233,45 @@ int Mixer::set_filterValue(int n_filter, double value)
 
 double* Mixer::get_rawFrequencies()
 {
-    for(int i = 0; i < COMP_SAMPLES; ++i)
-        rawFrequencies_d[i] = fftw_complex_mod(rawFrequencies_c[i]);
+    unsigned int buf_n = get_inactive_buffer();
 
-    return rawFrequencies_d;
+    for(int i = 0; i < COMP_SAMPLES; ++i)
+        rawFrequencies_d[buf_n][i] = fftw_complex_mod(rawFrequencies_c[buf_n][i]);
+
+    return rawFrequencies_d[buf_n];
 
 }
 
 double* Mixer::get_processedFrequencies()
 {
-    for(int i = 0; i < COMP_SAMPLES; ++i)
-        processedFrequencies_d[i] = fftw_complex_mod(processedFrequencies_c[i]);
+    unsigned int buf_n = get_inactive_buffer();
 
-    return processedFrequencies_d;
+    for(int i = 0; i < COMP_SAMPLES; ++i)
+        processedFrequencies_d[buf_n][i] = fftw_complex_mod(processedFrequencies_c[buf_n][i]);
+
+    return processedFrequencies_d[buf_n];
 }
 
 
 Mixer::~Mixer()
 {
+    for (int i = 0; i < NUM_BUFFERS; ++i)
+    {
+        delete[] rawData_d[i];
+        delete[] processedData_d[i];
+        delete[] rawFrequencies_d[i];
+        delete[] processedFrequencies_d[i];
+
+        delete[] rawData_i[i];
+        delete[] processedData_i[i];
+        delete[] rawFrequencies_c[i];
+        delete[] processedFrequencies_c[i];
+
+        fftw_destroy_plan(direct_plan[i]);
+        fftw_destroy_plan(inverse_plan[i]);
+    }
+
+
     delete[] rawData_d;
     delete[] processedData_d;
     delete[] rawFrequencies_d;
@@ -231,9 +282,9 @@ Mixer::~Mixer()
     delete[] rawFrequencies_c;
     delete[] processedFrequencies_c;
 
-    delete device;
+    delete[] direct_plan;
+    delete[] inverse_plan;
 
-    fftw_destroy_plan(direct_plan);
-    fftw_destroy_plan(inverse_plan);
+    delete device;
 }
 
