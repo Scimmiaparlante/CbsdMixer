@@ -10,8 +10,8 @@
 
 #define SAMPLE_RATE     44100
 #define NUM_SAMPLES     4096
-#define DEF_DEVICE_IN   "default"
-#define DEF_DEVICE_OUT  "default"
+#define DEF_DEVICE_IN   "sysdefault"
+#define DEF_DEVICE_OUT  "sysdefault"
 
 
 #define COMP_SAMPLES    ((NUM_SAMPLES/2) + 1)
@@ -87,7 +87,8 @@ public:
     Mixer(std::vector<double> frequencies_, FilteringShape shape_ = RECTANGULAR_FILTERING, WindowingFucntion wind_ = DISABLE_WINDOWING);
     ~Mixer();
 
-    [[noreturn]] void start();
+    [[noreturn]] void startAcquisition();
+    [[noreturn]] void startReproduction();
 
     inline double* get_rawData()                {return rawData_d[get_inactive_buffer()];}
     inline double*  get_processedData()         {return processedData_d[get_inactive_buffer()];}

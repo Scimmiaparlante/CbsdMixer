@@ -19,8 +19,8 @@ private:
     unsigned int num_samples;
     unsigned int sample_rate;
 
-    snd_pcm_t* capture_handle_in;
-    snd_pcm_t* capture_handle_out;
+    snd_pcm_t* handle_in;
+    snd_pcm_t* handle_out;
 
     void input_init(const char* dev);
     void output_init(const char* dev);

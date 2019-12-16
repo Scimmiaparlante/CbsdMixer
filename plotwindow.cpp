@@ -75,7 +75,9 @@ PlotWindow::PlotWindow(QWidget *parent) :
 
     //mixer startup (+ start reproduction)
     myMixer = new Mixer(freq, COSINE_FILTERING);
-    mixerThread = new std::thread(&Mixer::start, myMixer);
+    mixerThread = new std::thread(&Mixer::startAcquisition, myMixer);
+    mixerThread2 = new std::thread(&Mixer::startReproduction, myMixer);
+
 
     //set timer to trigger the update function
     plotTimer = new QTimer(nullptr);
@@ -89,6 +91,7 @@ PlotWindow::~PlotWindow()
     delete myMixer;
     delete plotTimer;
     delete mixerThread;
+    delete mixerThread2;
 }
 
 

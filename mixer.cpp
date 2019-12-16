@@ -1,6 +1,7 @@
 #include "mixer.h"
 
 #include <sched.h>
+#include <iostream>
 
 #define NUM_BUFFERS 2 //DO NOT MODIFY! The implementation of get_inactive_buffer() requires it to be 2
 
@@ -83,21 +84,42 @@ void Mixer::init_buffers()
 
 
 
-void Mixer::start()
+void Mixer::startAcquisition()
 {
     //make this a real-time thread
     sched_param p;
     sched_getparam(0, &p);
     p.sched_priority = sched_get_priority_max(SCHED_RR);
-    sched_setscheduler(0, SCHED_RR, &p);
-
-    unsigned int inactive_buf;
-    device->input_read(rawData_i[active_buffer]);
+    int ret = sched_setscheduler(0, SCHED_RR, &p);
+    if (ret < 0)
+        std::cerr << "Errore nella selezione della priorità" << std::endl;
 
     while(true)
     {
         //read data from the input to the active buffer
         device->input_read(rawData_i[active_buffer]);
+
+        //buffer switch
+        active_buffer = get_inactive_buffer();
+    }
+}
+
+
+void Mixer::startReproduction()
+{
+    //make this a real-time thread
+    sched_param p;
+    sched_getparam(0, &p);
+    p.sched_priority = sched_get_priority_max(SCHED_RR);
+    int ret = sched_setscheduler(0, SCHED_RR, &p);
+    if (ret < 0)
+        std::cerr << "Errore nella selezione della priorità" << std::endl;
+
+    unsigned int inactive_buf;
+
+    while(true)
+    {
+        inactive_buf = get_inactive_buffer();
 
         //conversion of the array to double
         for(int i = 0; i < NUM_SAMPLES; ++i)
@@ -120,10 +142,6 @@ void Mixer::start()
 
         //output
         device->output_write(processedData_i[inactive_buf]);
-
-        //buffer switch
-        inactive_buf = active_buffer;
-        active_buffer = get_inactive_buffer();
     }
 }
 

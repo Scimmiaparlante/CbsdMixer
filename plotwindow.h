@@ -34,6 +34,7 @@ private:
     QTimer *plotTimer;
     Mixer *myMixer;
     std::thread* mixerThread;
+    std::thread* mixerThread2;
 };
 
 #endif // PLOTWINDOW_H
