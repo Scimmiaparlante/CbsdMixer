@@ -64,6 +64,8 @@ private:
     fftw_plan* direct_plan;
     fftw_plan* inverse_plan;
 
+    void init_buffers();
+
     //utility functions
     double inline fftw_complex_mod(fftw_complex c) { return sqrt(c[0]*c[0] + c[1]*c[1]);}
 

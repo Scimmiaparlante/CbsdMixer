@@ -12,16 +12,7 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     shape = shape_;
     wind = wind_;
 
-    //array of buffers creation
-    rawData_i = new int16_t*[NUM_BUFFERS];
-    processedData_i = new int16_t*[NUM_BUFFERS];
-    rawFrequencies_c = new fftw_complex*[NUM_BUFFERS];
-    processedFrequencies_c = new fftw_complex*[NUM_BUFFERS];
-
-    rawData_d = new double*[NUM_BUFFERS];
-    processedData_d = new double*[NUM_BUFFERS];
-    rawFrequencies_d = new double*[NUM_BUFFERS];
-    processedFrequencies_d = new double*[NUM_BUFFERS];
+    init_buffers();
 
     //fft plans arrays
     direct_plan = new fftw_plan[2];
@@ -29,26 +20,10 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
 
     for (int i = 0; i < NUM_BUFFERS; ++i)
     {
-        //allocate buffers
-        rawData_i[i] = new int16_t[NUM_SAMPLES];
-        processedData_i[i] = new int16_t[NUM_SAMPLES];
-        rawFrequencies_c[i] = new fftw_complex[COMP_SAMPLES];
-        processedFrequencies_c[i] = new fftw_complex[COMP_SAMPLES];
-
-        rawData_d[i] = new double[NUM_SAMPLES];
-        processedData_d[i] = new double[NUM_SAMPLES];
-        rawFrequencies_d[i] = new double[COMP_SAMPLES];
-        processedFrequencies_d[i] = new double[COMP_SAMPLES];
-
         //prepare fft plans
         direct_plan[i] = fftw_plan_dft_r2c_1d(NUM_SAMPLES, rawData_d[i], rawFrequencies_c[i], 0);
         inverse_plan[i] = fftw_plan_dft_c2r_1d(NUM_SAMPLES, processedFrequencies_c[i], processedData_d[i], FFTW_PRESERVE_INPUT);
     }
-
-    active_buffer = 0;
-//    memset(rawData_i[active_buffer], 0, NUM_SAMPLES*sizeof(int16_t)); //set to 0 the buffer to avoid initial peak
-//    memset(rawFrequencies_c[active_buffer], 0, NUM_SAMPLES*sizeof(fftw_complex)); //set to 0 the buffer
-//    memset(processedFrequencies_c[active_buffer], 0, NUM_SAMPLES*sizeof(fftw_complex)); //set to 0 the buffer
 
     //allocate device
     device = new AudioIO(DEF_DEVICE_IN, DEF_DEVICE_OUT, NUM_SAMPLES, SAMPLE_RATE);
@@ -63,6 +38,51 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     compute_filter();
 }
 
+void Mixer::init_buffers()
+{
+    //array of buffers creation
+    rawData_i = new int16_t*[NUM_BUFFERS];
+    processedData_i = new int16_t*[NUM_BUFFERS];
+    rawFrequencies_c = new fftw_complex*[NUM_BUFFERS];
+    processedFrequencies_c = new fftw_complex*[NUM_BUFFERS];
+
+    rawData_d = new double*[NUM_BUFFERS];
+    processedData_d = new double*[NUM_BUFFERS];
+    rawFrequencies_d = new double*[NUM_BUFFERS];
+    processedFrequencies_d = new double*[NUM_BUFFERS];
+
+    for (int i = 0; i < NUM_BUFFERS; ++i)
+    {
+        //allocate buffers
+        rawData_i[i] = new int16_t[NUM_SAMPLES];
+        processedData_i[i] = new int16_t[NUM_SAMPLES];
+        rawFrequencies_c[i] = new fftw_complex[COMP_SAMPLES];
+        processedFrequencies_c[i] = new fftw_complex[COMP_SAMPLES];
+
+        rawData_d[i] = new double[NUM_SAMPLES];
+        processedData_d[i] = new double[NUM_SAMPLES];
+        rawFrequencies_d[i] = new double[COMP_SAMPLES];
+        processedFrequencies_d[i] = new double[COMP_SAMPLES];
+    }
+
+    active_buffer = 0;
+
+    //cleaning the inactive buffers for the first run
+    for(int i = 0; i < NUM_SAMPLES; ++i) {
+        rawData_i[active_buffer][i] = 100;
+        rawData_d[active_buffer][i] = 100;
+    }
+
+    for(int i = 0; i < COMP_SAMPLES; ++i) {
+        rawFrequencies_c[active_buffer][i][0] = 100;
+        rawFrequencies_c[active_buffer][i][1] = 100;
+        processedFrequencies_c[active_buffer][i][0] = 100;
+        processedFrequencies_c[active_buffer][i][1] = 100;
+    }
+}
+
+
+
 void Mixer::start()
 {
     //make this a real-time thread
@@ -72,13 +92,10 @@ void Mixer::start()
     sched_setscheduler(0, SCHED_RR, &p);
 
     unsigned int inactive_buf;
+    device->input_read(rawData_i[active_buffer]);
 
     while(true)
     {
-        //buffer switch
-        inactive_buf = active_buffer;
-        active_buffer = get_inactive_buffer();
-
         //read data from the input to the active buffer
         device->input_read(rawData_i[active_buffer]);
 
@@ -103,6 +120,10 @@ void Mixer::start()
 
         //output
         device->output_write(processedData_i[inactive_buf]);
+
+        //buffer switch
+        inactive_buf = active_buffer;
+        active_buffer = get_inactive_buffer();
     }
 }
 
@@ -233,7 +254,7 @@ int Mixer::set_filterValue(int n_filter, double value)
 
 double* Mixer::get_rawFrequencies()
 {
-    unsigned int buf_n = get_inactive_buffer();
+    unsigned int buf_n = get_active_buffer();
 
     for(int i = 0; i < COMP_SAMPLES; ++i)
         rawFrequencies_d[buf_n][i] = fftw_complex_mod(rawFrequencies_c[buf_n][i]);
@@ -244,7 +265,7 @@ double* Mixer::get_rawFrequencies()
 
 double* Mixer::get_processedFrequencies()
 {
-    unsigned int buf_n = get_inactive_buffer();
+    unsigned int buf_n = get_active_buffer();
 
     for(int i = 0; i < COMP_SAMPLES; ++i)
         processedFrequencies_d[buf_n][i] = fftw_complex_mod(processedFrequencies_c[buf_n][i]);
