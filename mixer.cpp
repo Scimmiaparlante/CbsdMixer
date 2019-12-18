@@ -1,7 +1,9 @@
 #include "mixer.h"
 
 #include <sched.h>
+#include <unistd.h>
 #include <iostream>
+
 
 #define NUM_BUFFERS 2 //DO NOT MODIFY! The implementation of get_inactive_buffer() requires it to be 2
 
@@ -134,6 +136,15 @@ void Mixer::startReproduction()
         //return to time
         fftw_execute(inverse_plan[inactive_buf]);
 
+        //go to frequenct domain
+        fftw_execute(direct_plan[inactive_buf]);
+
+        //filter
+        apply_filter(inactive_buf);
+
+        //return to time
+        fftw_execute(inverse_plan[inactive_buf]);
+
         //normalization and integer conversion
         for(int i = 0; i < NUM_SAMPLES; ++i) {
             processedData_d[inactive_buf][i] /= static_cast<double>(NUM_SAMPLES);
@@ -142,6 +153,8 @@ void Mixer::startReproduction()
 
         //output
         device->output_write(processedData_i[inactive_buf]);
+
+        //usleep(90000);
     }
 }
 

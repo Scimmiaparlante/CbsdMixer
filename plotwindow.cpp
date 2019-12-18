@@ -1,6 +1,7 @@
 #include "plotwindow.h"
 #include "ui_plotwindow.h"
 #include <qwt_scale_engine.h>
+#include <signal.h>
 
 #define MAX_Y 1000000000
 
@@ -90,6 +91,10 @@ PlotWindow::~PlotWindow()
     delete ui;
     delete myMixer;
     delete plotTimer;
+
+    pthread_kill(mixerThread->native_handle(), SIGKILL);
+    pthread_kill(mixerThread2->native_handle(), SIGKILL);
+
     delete mixerThread;
     delete mixerThread2;
 }

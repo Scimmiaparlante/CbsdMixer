@@ -9,7 +9,7 @@
 #include "audioio.h"
 
 #define SAMPLE_RATE     44100
-#define NUM_SAMPLES     4096
+#define NUM_SAMPLES     4704
 #define DEF_DEVICE_IN   "sysdefault"
 #define DEF_DEVICE_OUT  "sysdefault"
 
