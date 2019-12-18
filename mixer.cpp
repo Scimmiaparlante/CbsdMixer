@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <iostream>
 
+#define DEF_OVERLAP_SIZE 200
+
 
 #define NUM_BUFFERS 2 //DO NOT MODIFY! The implementation of get_inactive_buffer() requires it to be 2
 
@@ -14,6 +16,7 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     frequencies = frequencies_;
     shape = shape_;
     wind = wind_;
+    overlap_size = (wind == OVERLAP_WINDOWING) ? DEF_OVERLAP_SIZE : 0;
 
     init_buffers();
 
@@ -29,7 +32,7 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     }
 
     //allocate device
-    device = new AudioIO(DEF_DEVICE_IN, DEF_DEVICE_OUT, NUM_SAMPLES, SAMPLE_RATE);
+    device = new AudioIO(DEF_DEVICE_IN, DEF_DEVICE_OUT, NUM_SAMPLES - overlap_size, SAMPLE_RATE);
 
     //reset filter factors and volume to 1
     for(unsigned long i = 0; i < frequencies.size(); ++i)
@@ -99,7 +102,7 @@ void Mixer::startAcquisition()
     while(true)
     {
         //read data from the input to the active buffer
-        device->input_read(rawData_i[active_buffer]);
+        device->input_read(rawData_i[active_buffer] + overlap_size);
 
         //buffer switch
         active_buffer = get_inactive_buffer();
@@ -117,14 +120,18 @@ void Mixer::startReproduction()
     if (ret < 0)
         std::cerr << "Errore nella selezione della priorità" << std::endl;
 
-    unsigned int inactive_buf;
+    unsigned int inactive_buf, active_buf;
 
     while(true)
     {
         inactive_buf = get_inactive_buffer();
+        active_buf = get_active_buffer();
+
+        //copy the last part of the previous sample for overlapping
+        memcpy(rawData_d[inactive_buf], rawData_d[active_buf], overlap_size*sizeof(double));
 
         //conversion of the array to double
-        for(int i = 0; i < NUM_SAMPLES; ++i)
+        for(unsigned int i = overlap_size; i < NUM_SAMPLES; ++i)
             rawData_d[inactive_buf][i] = static_cast<double>(rawData_i[inactive_buf][i]);
 
         //go to frequenct domain
@@ -136,18 +143,23 @@ void Mixer::startReproduction()
         //return to time
         fftw_execute(inverse_plan[inactive_buf]);
 
-        //go to frequenct domain
-        fftw_execute(direct_plan[inactive_buf]);
-
-        //filter
-        apply_filter(inactive_buf);
-
-        //return to time
-        fftw_execute(inverse_plan[inactive_buf]);
 
         //normalization and integer conversion
-        for(int i = 0; i < NUM_SAMPLES; ++i) {
-            processedData_d[inactive_buf][i] /= static_cast<double>(NUM_SAMPLES);
+        for(unsigned int i = 0; i < NUM_SAMPLES; ++i) {
+
+            //create alias for the buffer element
+            double* pd_d = &processedData_d[inactive_buf][i];
+
+            //normalize
+            *pd_d /= static_cast<double>(NUM_SAMPLES);
+
+            double i_d = static_cast<double>(i);
+
+            //integrate with the past step
+            if(i < overlap_size)
+                *pd_d = (*pd_d)*(i_d/overlap_size) + processedData_d[active_buf][NUM_SAMPLES - overlap_size]*(1 - i_d/overlap_size);
+
+
             processedData_i[inactive_buf][i] = static_cast<int16_t>(processedData_d[inactive_buf][i]);
         }
 

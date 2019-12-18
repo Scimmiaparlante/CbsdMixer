@@ -27,7 +27,7 @@ enum FilteringShape {
 
 enum WindowingFucntion {
     DISABLE_WINDOWING,
-    LINEAR_WINDOWING
+    OVERLAP_WINDOWING
 };
 
 
@@ -40,6 +40,7 @@ private:
     WindowingFucntion wind;
     std::vector<double> filter_factors;
     double volume;
+    unsigned int overlap_size;
 
     //filter value for avery frequency
     double* filter;

@@ -75,7 +75,7 @@ PlotWindow::PlotWindow(QWidget *parent) :
     connect(ui->VolumeSlider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
 
     //mixer startup (+ start reproduction)
-    myMixer = new Mixer(freq, COSINE_FILTERING);
+    myMixer = new Mixer(freq, COSINE_FILTERING, OVERLAP_WINDOWING);
     mixerThread = new std::thread(&Mixer::startAcquisition, myMixer);
     mixerThread2 = new std::thread(&Mixer::startReproduction, myMixer);
 
