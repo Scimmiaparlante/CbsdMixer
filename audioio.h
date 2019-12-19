@@ -4,7 +4,6 @@
 #include <cstdint>
 
 #include <alsa/asoundlib.h>
-#include <fftw3.h>
 
 class AudioIO
 {

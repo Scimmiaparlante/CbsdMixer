@@ -32,12 +32,20 @@ SOURCES += \
         main.cpp \
         plotwindow.cpp \
     mixer.cpp \
-    audioio.cpp
+    audioio.cpp \
+	Filters/filter.cpp \
+    Filters/rectangularfilter.cpp \
+    Filters/triangularfilter.cpp \
+    Filters/cosinefilter.cpp
 
 HEADERS += \
         plotwindow.h \
     mixer.h \
-    audioio.h
+    audioio.h \
+	Filters/filter.h \
+    Filters/rectangularfilter.h \
+    Filters/triangularfilter.h \
+    Filters/cosinefilter.h
 
 FORMS += \
         plotwindow.ui

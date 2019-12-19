@@ -5,6 +5,7 @@
 #include <math.h>
 #include <mutex>
 #include <atomic>
+#include <fftw3.h>
 
 #include "audioio.h"
 
