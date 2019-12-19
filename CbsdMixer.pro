@@ -45,7 +45,8 @@ HEADERS += \
 	Filters/filter.h \
     Filters/rectangularfilter.h \
     Filters/triangularfilter.h \
-    Filters/cosinefilter.h
+    Filters/cosinefilter.h \
+    Filters/filter_types.h
 
 FORMS += \
         plotwindow.ui

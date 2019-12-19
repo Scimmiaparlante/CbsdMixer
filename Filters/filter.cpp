@@ -21,12 +21,12 @@ Filter::~Filter()
 }
 
 
-void Filter::apply(fftw_complex *buf)
+void Filter::apply(fftw_complex* dest_buf, fftw_complex* source_buf, double extra_factor)
 {
     for(unsigned int i = 0; i < num_samples; ++i)
     {
-        buf[i][0] *= filter[i];
-        buf[i][1] *= filter[i];
+        dest_buf[i][0] = source_buf[i][0] * filter[i] * extra_factor;
+        dest_buf[i][1] = source_buf[i][1] * filter[i] * extra_factor;
     }
 }
 

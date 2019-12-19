@@ -8,6 +8,7 @@
 #include <fftw3.h>
 
 #include "audioio.h"
+#include "Filters/filter_types.h"
 
 #define SAMPLE_RATE     44100
 #define NUM_SAMPLES     4704
@@ -16,9 +17,6 @@
 
 
 #define COMP_SAMPLES    ((NUM_SAMPLES/2) + 1)
-
-
-
 
 enum FilteringShape {
     RECTANGULAR_FILTERING,
@@ -36,15 +34,12 @@ class Mixer
 {
 private:
     //configuration data
-    std::vector<double> frequencies;
-    FilteringShape shape;
     WindowingFucntion wind;
-    std::vector<double> filter_factors;
     double volume;
     unsigned int overlap_size;
 
     //filter value for avery frequency
-    double* filter;
+    Filter* filter;
 
     //variable to state which is the active buffer
     std::atomic<unsigned int> active_buffer;
@@ -67,23 +62,15 @@ private:
     fftw_plan* inverse_plan;
 
     void init_buffers();
+    void init_filter(FilteringShape shape, std::vector<double> freq);
 
     //utility functions
     double inline fftw_complex_mod(fftw_complex c) { return sqrt(c[0]*c[0] + c[1]*c[1]);}
-
-    //filters functions
-    void apply_filter(unsigned int num_buf);
-
-    void compute_filter();
-    void compute_rectangular_filter();
-    void compute_triangular_filter();
-    void compute_cosine_filter();
+    void set_rt_priority();
 
     //functions to get the correct buffer index
     inline unsigned int get_active_buffer() {return active_buffer;}
     inline unsigned int get_inactive_buffer() {return ((active_buffer == 0) ? 1 : 0);} //only because we have two buffers
-
-
 
 public:
     Mixer(std::vector<double> frequencies_, FilteringShape shape_ = RECTANGULAR_FILTERING, WindowingFucntion wind_ = DISABLE_WINDOWING);
@@ -97,10 +84,8 @@ public:
     double* get_rawFrequencies();
     double* get_processedFrequencies();
 
-    int set_filterValue(int n_filter, double value);
+    int set_filterValue(int n_filter, double value) { return filter->set_filterValue(n_filter, value); }
     void set_volume(double value)       {volume = value;}
-
-
 };
 
 #endif // MIXER_H

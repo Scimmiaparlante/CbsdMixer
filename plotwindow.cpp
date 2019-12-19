@@ -6,7 +6,7 @@
 #define MAX_Y 1000000000
 
 #define MIN_AMPL -10
-#define MAX_AMPL 10
+#define MAX_AMPL 5
 
 #define NUM_SLIDERS 7
 

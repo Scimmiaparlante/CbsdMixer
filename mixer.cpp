@@ -4,17 +4,15 @@
 #include <unistd.h>
 #include <iostream>
 
-#define DEF_OVERLAP_SIZE 200
+#define DEF_OVERLAP_SIZE 200        //default size of the overlapping window
 
-
+//number of buffers
 #define NUM_BUFFERS 2 //DO NOT MODIFY! The implementation of get_inactive_buffer() requires it to be 2
 
 
 Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingFucntion wind_)
 {
     //copy construction data
-    frequencies = frequencies_;
-    shape = shape_;
     wind = wind_;
     overlap_size = (wind == OVERLAP_WINDOWING) ? DEF_OVERLAP_SIZE : 0;
 
@@ -34,14 +32,9 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     //allocate device
     device = new AudioIO(DEF_DEVICE_IN, DEF_DEVICE_OUT, NUM_SAMPLES - overlap_size, SAMPLE_RATE);
 
-    //reset filter factors and volume to 1
-    for(unsigned long i = 0; i < frequencies.size(); ++i)
-        filter_factors.push_back(1);
+    //initialize filter and volume
+    init_filter(shape_, frequencies_);
     volume = 1;
-
-    //allocate and initialize filter
-    filter = new double[COMP_SAMPLES];
-    compute_filter();
 }
 
 void Mixer::init_buffers()
@@ -89,7 +82,23 @@ void Mixer::init_buffers()
 
 
 
-void Mixer::startAcquisition()
+void Mixer::init_filter(FilteringShape shape, std::vector<double> freq)
+{
+    switch(shape)//choose the correct type of filter
+    {
+    case RECTANGULAR_FILTERING:
+        filter = new RectangularFilter(COMP_SAMPLES, SAMPLE_RATE, freq);
+        break;
+    case TRIANGULAR_FILTERING:
+        filter = new TriangularFilter(COMP_SAMPLES, SAMPLE_RATE, freq);
+        break;
+    case COSINE_FILTERING:
+        filter = new CosineFilter(COMP_SAMPLES, SAMPLE_RATE, freq);
+        break;
+    }
+}
+
+void Mixer::set_rt_priority()
 {
     //make this a real-time thread
     sched_param p;
@@ -98,6 +107,13 @@ void Mixer::startAcquisition()
     int ret = sched_setscheduler(0, SCHED_RR, &p);
     if (ret < 0)
         std::cerr << "Errore nella selezione della priorità" << std::endl;
+}
+
+
+
+void Mixer::startAcquisition()
+{
+    set_rt_priority();
 
     while(true)
     {
@@ -110,15 +126,10 @@ void Mixer::startAcquisition()
 }
 
 
+
 void Mixer::startReproduction()
 {
-    //make this a real-time thread
-    sched_param p;
-    sched_getparam(0, &p);
-    p.sched_priority = sched_get_priority_max(SCHED_RR);
-    int ret = sched_setscheduler(0, SCHED_RR, &p);
-    if (ret < 0)
-        std::cerr << "Errore nella selezione della priorità" << std::endl;
+    set_rt_priority();
 
     unsigned int inactive_buf, active_buf;
 
@@ -138,14 +149,16 @@ void Mixer::startReproduction()
         fftw_execute(direct_plan[inactive_buf]);
 
         //filter
-        apply_filter(inactive_buf);
+        filter->apply(processedFrequencies_c[inactive_buf], rawFrequencies_c[inactive_buf], volume);
 
         //return to time
         fftw_execute(inverse_plan[inactive_buf]);
 
 
         //normalization and integer conversion
-        for(unsigned int i = 0; i < NUM_SAMPLES; ++i) {
+        for(unsigned int i = 0; i < NUM_SAMPLES; ++i)
+        {
+            double i_d = static_cast<double>(i);
 
             //create alias for the buffer element
             double* pd_d = &processedData_d[inactive_buf][i];
@@ -153,12 +166,9 @@ void Mixer::startReproduction()
             //normalize
             *pd_d /= static_cast<double>(NUM_SAMPLES);
 
-            double i_d = static_cast<double>(i);
-
             //integrate with the past step
             if(i < overlap_size)
                 *pd_d = (*pd_d)*(i_d/overlap_size) + processedData_d[active_buf][NUM_SAMPLES - overlap_size]*(1 - i_d/overlap_size);
-
 
             processedData_i[inactive_buf][i] = static_cast<int16_t>(processedData_d[inactive_buf][i]);
         }
@@ -170,129 +180,6 @@ void Mixer::startReproduction()
     }
 }
 
-
-
-void Mixer::apply_filter(unsigned int num_buf)
-{
-    for(unsigned int i = 0; i < COMP_SAMPLES; ++i)
-    {
-        processedFrequencies_c[num_buf][i][0] = volume*filter[i]*rawFrequencies_c[num_buf][i][0];
-        processedFrequencies_c[num_buf][i][1] = volume*filter[i]*rawFrequencies_c[num_buf][i][1];
-    }
-}
-
-void Mixer::compute_filter()
-{
-    switch(shape)//choose the correct type of filter
-    {
-    case RECTANGULAR_FILTERING:
-        compute_rectangular_filter();
-        break;
-    case TRIANGULAR_FILTERING:
-        compute_triangular_filter();
-        break;
-    case COSINE_FILTERING:
-        compute_cosine_filter();
-        break;
-    }
-}
-
-void Mixer::compute_rectangular_filter()
-{
-    unsigned long part = 0;
-    unsigned long len = frequencies.size();
-
-    for(unsigned long i = 0; i < COMP_SAMPLES; ++i)
-    {
-        double f = i*SAMPLE_RATE/NUM_SAMPLES;
-
-        if(f < (frequencies[0] + frequencies[1])/2)
-            filter[i] = filter_factors[0];
-        else if(f > (frequencies[len-1] + frequencies[len-2])/2)
-            filter[i] = filter_factors[len - 1];
-        else if(part > 0 && part < (len-1) && f > (frequencies[part] + frequencies[part-1])/2 && f < (frequencies[part]+frequencies[part+1])/2)
-            filter[i] = filter_factors[part];
-        else {
-            part++; i--;
-        }
-    }
-}
-
-void Mixer::compute_triangular_filter()
-{
-    unsigned long part = 0;
-    unsigned long len = frequencies.size();
-
-    for(unsigned long i = 0; i < COMP_SAMPLES; ++i)
-    {
-        double f = i*SAMPLE_RATE/NUM_SAMPLES;
-
-        if(f < frequencies[0])
-            filter[i] = 1 + (filter_factors[0]-1)*f/frequencies[0];
-        else if(f > (frequencies[len-1]))
-        {
-            double n = (f - frequencies[len-1]) / (SAMPLE_RATE/2 - frequencies[len-1]);
-            filter[i] = 1 * n +  filter_factors[len-1] * (1-n);
-        }
-        else if(part > 0 && part < (len) && f >= frequencies[part-1] && f <= frequencies[part])
-        {
-            double n = (f - frequencies[part-1]) / (frequencies[part] - frequencies[part-1]);
-            filter[i] = filter_factors[part] * n +  filter_factors[part-1] * (1-n);
-        }
-        else {
-            part++; i--;
-        }
-    }
-}
-
-
-void Mixer::compute_cosine_filter()
-{
-    unsigned long part = 0;
-    unsigned long len = frequencies.size();
-
-    for(unsigned long i = 0; i < COMP_SAMPLES; ++i)
-    {
-        double f = i*SAMPLE_RATE/NUM_SAMPLES;
-
-        if(f < frequencies[0])
-        {
-            double n = f / frequencies[0];
-            double n2 = (1 - cos(n * M_PI)) / 2;
-            filter[i] = filter_factors[0] * n2 + 1 * (1-n2);
-        }
-        else if(f > (frequencies[len-1]))
-        {
-            double n = (f - frequencies[len-1]) / (SAMPLE_RATE/2 - frequencies[len-1]);
-            double n2 = (1 - cos(n * M_PI)) / 2;
-            filter[i] = 1 * n2 + filter_factors[len-1] * (1-n2);
-        }
-        else if(part > 0 && part < (len) && f >= frequencies[part-1] && f <= frequencies[part])
-        {
-            double n = (f - frequencies[part-1]) / (frequencies[part] - frequencies[part-1]);
-            double n2 = (1 - cos(n * M_PI)) / 2;
-            filter[i] = filter_factors[part] * n2 + filter_factors[part-1] * (1-n2);
-        }
-        else {
-            part++; i--;
-        }
-    }
-}
-
-
-int Mixer::set_filterValue(int n_filter, double value)
-{
-    unsigned long len = frequencies.size();
-    if (n_filter >= static_cast<int>(len))
-        return -1;
-
-    filter_factors[static_cast<unsigned long>(n_filter)] = value;
-
-    //recompute the filter's values
-    compute_filter();
-
-    return 0;
-}
 
 
 double* Mixer::get_rawFrequencies()
@@ -349,6 +236,7 @@ Mixer::~Mixer()
     delete[] direct_plan;
     delete[] inverse_plan;
 
+    delete filter;
     delete device;
 }
 

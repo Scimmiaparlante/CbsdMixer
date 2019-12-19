@@ -21,7 +21,7 @@ public:
     Filter(unsigned int num_samples_, unsigned int sample_rate_, std::vector<double> frequencies_);
     virtual ~Filter();
 
-    virtual void apply(fftw_complex* buf) = 0;
+    virtual void apply(fftw_complex* dest_buf, fftw_complex* source_buf, double extra_factor);
     virtual int set_filterValue(int n_filter, double value);
 };
 
