@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <iostream>
 
-#define DEF_OVERLAP_SIZE 200        //default size of the overlapping window
+#define DEF_OVERLAP_SIZE 300        //default size of the overlapping window
 
 //number of buffers
 #define NUM_BUFFERS 2 //DO NOT MODIFY! The implementation of get_inactive_buffer() requires it to be 2
@@ -138,12 +138,14 @@ void Mixer::startReproduction()
         inactive_buf = get_inactive_buffer();
         active_buf = get_active_buffer();
 
-        //copy the last part of the previous sample for overlapping
-        memcpy(rawData_d[inactive_buf], rawData_d[active_buf], overlap_size*sizeof(double));
-
         //conversion of the array to double
-        for(unsigned int i = overlap_size; i < NUM_SAMPLES; ++i)
-            rawData_d[inactive_buf][i] = static_cast<double>(rawData_i[inactive_buf][i]);
+        for(unsigned int i = 0; i < NUM_SAMPLES; ++i)
+        {
+            if (i < overlap_size)   //copy the overlapping part from the previous run
+                rawData_d[inactive_buf][i] =  rawData_d[active_buf][i + NUM_SAMPLES - overlap_size];
+            else                    //copy the second part from the input buffer
+                rawData_d[inactive_buf][i] = static_cast<double>(rawData_i[inactive_buf][i]);
+        }
 
         //go to frequenct domain
         fftw_execute(direct_plan[inactive_buf]);
@@ -153,7 +155,6 @@ void Mixer::startReproduction()
 
         //return to time
         fftw_execute(inverse_plan[inactive_buf]);
-
 
         //normalization and integer conversion
         for(unsigned int i = 0; i < NUM_SAMPLES; ++i)
@@ -168,7 +169,7 @@ void Mixer::startReproduction()
 
             //integrate with the past step
             if(i < overlap_size)
-                *pd_d = (*pd_d)*(i_d/overlap_size) + processedData_d[active_buf][NUM_SAMPLES - overlap_size]*(1 - i_d/overlap_size);
+                *pd_d = (*pd_d)*(i_d/overlap_size) + processedData_d[active_buf][i + NUM_SAMPLES - overlap_size]*(1 - i_d/overlap_size);
 
             processedData_i[inactive_buf][i] = static_cast<int16_t>(processedData_d[inactive_buf][i]);
         }
