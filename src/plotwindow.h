@@ -9,12 +9,12 @@
 #include "qwt_plot_curve.h"
 
 #include "mixer.h"
+#include "filterwindow.h"
 
 
 
 namespace Ui {
 class PlotWindow;
-class FilterWindow;
 }
 
 class PlotWindow : public QMainWindow
@@ -23,11 +23,9 @@ class PlotWindow : public QMainWindow
 
 private:
     Ui::PlotWindow* ui;
-    Ui::FilterWindow* uif;
-    QMainWindow filter_window;
+    FilterWindow filter_window;
     QwtPlotCurve* curve_pre;
     QwtPlotCurve* curve_post;
-    QwtPlotCurve* curve_filter;
     QTimer *plotTimer;
 
     Mixer *myMixer;
@@ -46,8 +44,6 @@ public slots:
     void replot();
     void update_filter(double val);
     void show_filter_window();
-
-
 };
 
 

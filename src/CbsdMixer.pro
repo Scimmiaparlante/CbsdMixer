@@ -36,7 +36,8 @@ SOURCES += \
 	Filters/filter.cpp \
     Filters/rectangularfilter.cpp \
     Filters/triangularfilter.cpp \
-    Filters/cosinefilter.cpp
+    Filters/cosinefilter.cpp \
+    filterwindow.cpp
 
 HEADERS += \
         plotwindow.h \
@@ -46,10 +47,12 @@ HEADERS += \
     Filters/rectangularfilter.h \
     Filters/triangularfilter.h \
     Filters/cosinefilter.h \
-    Filters/filter_types.h
+    Filters/filter_types.h \
+    filterwindow.h
 
 FORMS += \
-        plotwindow.ui
+        plotwindow.ui \
+    filterwindow.ui
 
 QMAKE_CXXFLAGS += -lasound -lfftw3
 LIBS += -lasound -lfftw3

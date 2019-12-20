@@ -15,8 +15,7 @@
 PlotWindow::PlotWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::PlotWindow),
-    uif(new Ui::FilterWindow),
-    filter_window(this)
+    filter_window(SAMPLE_RATE/NUM_SAMPLES, SAMPLE_RATE/2, this)
 {
     ui->setupUi(this);
 
@@ -45,12 +44,6 @@ PlotWindow::PlotWindow(QWidget *parent) :
     //---------------------- SETUP OF FILTER WINDOW ----------------------------------
     //connect the menu entry to a function
     connect(ui->actionShow_filter, SIGNAL(triggered(bool)), this, SLOT(show_filter_window()));
-    uif->setupUi(&filter_window);
-    //create curve for filter plot
-    curve_filter = new QwtPlotCurve();
-    init_logFreqPlot(uif->filterPlot, curve_filter);
-    filter_window.setWindowFlags(filter_window.windowFlags() | Qt::WindowStaysOnTopHint );
-    filter_window.move(100,100);
 }
 
 
@@ -101,7 +94,6 @@ void PlotWindow::init_slider_panel(std::vector<double> freq)
 PlotWindow::~PlotWindow()
 {
     delete ui;
-    delete uif;
     delete myMixer;
     delete plotTimer;
 
@@ -143,9 +135,9 @@ void PlotWindow::replot()
         for (long int i = 0; i < COMP_SAMPLES; ++i)
             points3 << QPointF( static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES*i, data[i] );
 
-        curve_filter->setSamples( points3 );
+        filter_window.curve_filter->setSamples( points3 );
 
-        uif->filterPlot->replot();
+        filter_window.ui->filterPlot->replot();
     }
 }
 
