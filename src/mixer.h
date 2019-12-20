@@ -15,7 +15,8 @@
 #define DEF_DEVICE_IN   "sysdefault"
 #define DEF_DEVICE_OUT  "sysdefault"
 
-
+//for this computation refer to:
+//http://www.fftw.org/fftw3_doc/One_002dDimensional-DFTs-of-Real-Data.html
 #define COMP_SAMPLES    ((NUM_SAMPLES/2) + 1)
 
 enum FilteringShape {
@@ -79,6 +80,7 @@ public:
     [[noreturn]] void startAcquisition();
     [[noreturn]] void startReproduction();
 
+    inline double* get_filter()                 {return filter->get_filter();}
     inline double* get_rawData()                {return rawData_d[get_inactive_buffer()];}
     inline double*  get_processedData()         {return processedData_d[get_inactive_buffer()];}
     double* get_rawFrequencies();

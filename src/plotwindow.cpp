@@ -1,5 +1,6 @@
 #include "plotwindow.h"
 #include "ui_plotwindow.h"
+#include "ui_filterwindow.h"
 #include <qwt_scale_engine.h>
 #include <signal.h>
 
@@ -13,40 +14,62 @@
 
 PlotWindow::PlotWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::PlotWindow)
+    ui(new Ui::PlotWindow),
+    uif(new Ui::FilterWindow),
+    filter_window(this)
 {
     ui->setupUi(this);
 
-    //set up the first plot
-    ui->preFrequencyPlot->setAxisAutoScale(QwtPlot::yLeft, false);
-    ui->preFrequencyPlot->setAxisScale(QwtPlot::yLeft, 1, MAX_Y);
-    ui->preFrequencyPlot->setAxisScaleEngine( QwtPlot::yLeft, new QwtLogScaleEngine );
-    ui->preFrequencyPlot->setAxisScale(QwtPlot::xBottom, SAMPLE_RATE/NUM_SAMPLES, SAMPLE_RATE/2);
-    ui->preFrequencyPlot->setAxisScaleEngine( QwtPlot::xBottom, new QwtLogScaleEngine );
-
-    //set up the second plot
-    ui->postFrequencyPlot->setAxisAutoScale(QwtPlot::yLeft, false);
-    ui->postFrequencyPlot->setAxisScale(QwtPlot::yLeft, 1, MAX_Y);
-    ui->postFrequencyPlot->setAxisScaleEngine( QwtPlot::yLeft, new QwtLogScaleEngine );
-    ui->postFrequencyPlot->setAxisScale(QwtPlot::xBottom, SAMPLE_RATE/NUM_SAMPLES, SAMPLE_RATE/2);
-    ui->postFrequencyPlot->setAxisScaleEngine( QwtPlot::xBottom, new QwtLogScaleEngine );
-
-    //create curve for plot 1
+    //set up the plots and curves
     curve_pre = new QwtPlotCurve();
-    //curve_pre->setTitle( "Some Points" );
-    curve_pre->setPen( Qt::blue, 1 );
-    curve_pre->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    curve_pre->attach( ui->preFrequencyPlot );
-
-    //create curve for plot 2
     curve_post = new QwtPlotCurve();
-    curve_post->setPen( Qt::blue, 1 );
-    curve_post->setRenderHint( QwtPlotItem::RenderAntialiased, true );
-    curve_post->attach( ui->postFrequencyPlot );
+    init_logFreqPlot(ui->preFrequencyPlot, curve_pre);
+    init_logFreqPlot(ui->postFrequencyPlot, curve_post);
 
     //decide the mixer's frequencies
     std::vector<double> freq = {60, 170, 500, 1000, 5000, 12000};
 
+    //initialize the sliders' panel
+    init_slider_panel(freq);
+
+    //mixer startup (+ start reproduction)
+    myMixer = new Mixer(freq, COSINE_FILTERING, OVERLAP_WINDOWING);
+    mixerThread = new std::thread(&Mixer::startAcquisition, myMixer);
+    mixerThread2 = new std::thread(&Mixer::startReproduction, myMixer);
+
+    //set timer to trigger the update function
+    plotTimer = new QTimer(nullptr);
+    connect(plotTimer, SIGNAL(timeout()), this, SLOT(replot()));
+    plotTimer->start(1000*NUM_SAMPLES/SAMPLE_RATE);
+
+    //---------------------- SETUP OF FILTER WINDOW ----------------------------------
+    //connect the menu entry to a function
+    connect(ui->actionShow_filter, SIGNAL(triggered(bool)), this, SLOT(show_filter_window()));
+    uif->setupUi(&filter_window);
+    //create curve for filter plot
+    curve_filter = new QwtPlotCurve();
+    init_logFreqPlot(uif->filterPlot, curve_filter);
+    filter_window.setWindowFlags(filter_window.windowFlags() | Qt::WindowStaysOnTopHint );
+    filter_window.move(100,100);
+}
+
+
+void PlotWindow::init_logFreqPlot(QwtPlot* plot, QwtPlotCurve* curve)
+{
+    //set up the first plot
+    plot->setAxisAutoScale(QwtPlot::yLeft, false);
+    plot->setAxisScale(QwtPlot::yLeft, 1, MAX_Y);
+    plot->setAxisScaleEngine(QwtPlot::yLeft, new QwtLogScaleEngine);
+    plot->setAxisScale(QwtPlot::xBottom, SAMPLE_RATE/NUM_SAMPLES, SAMPLE_RATE/2);
+    plot->setAxisScaleEngine(QwtPlot::xBottom, new QwtLogScaleEngine);
+
+    curve->setPen(Qt::blue, 1);
+    curve->setRenderHint(QwtPlotItem::RenderAntialiased, true);
+    curve->attach(plot);
+}
+
+void PlotWindow::init_slider_panel(std::vector<double> freq)
+{
     for(int i = 1; i < NUM_SLIDERS; ++i)
     {
         //initialize labels
@@ -69,26 +92,16 @@ PlotWindow::PlotWindow(QWidget *parent) :
             slider->setScale(MIN_AMPL, MAX_AMPL);
 
         connect(slider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
+
+        //init volume slider event
+        connect(ui->VolumeSlider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
     }
-
-    //init volume slider event
-    connect(ui->VolumeSlider, SIGNAL(valueChanged(double)), this, SLOT(update_filter(double)));
-
-    //mixer startup (+ start reproduction)
-    myMixer = new Mixer(freq, COSINE_FILTERING, OVERLAP_WINDOWING);
-    mixerThread = new std::thread(&Mixer::startAcquisition, myMixer);
-    mixerThread2 = new std::thread(&Mixer::startReproduction, myMixer);
-
-
-    //set timer to trigger the update function
-    plotTimer = new QTimer(nullptr);
-    connect(plotTimer, SIGNAL(timeout()), this, SLOT(replot()));
-    plotTimer->start(1000*NUM_SAMPLES/SAMPLE_RATE);
 }
 
 PlotWindow::~PlotWindow()
 {
     delete ui;
+    delete uif;
     delete myMixer;
     delete plotTimer;
 
@@ -106,9 +119,8 @@ void PlotWindow::replot()
     double* data = myMixer->get_rawFrequencies();
     QPolygonF points;
     for (long int i = 0; i < COMP_SAMPLES; ++i)
-    {
         points << QPointF( static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES*i, data[i] );
-    }
+
     curve_pre->setSamples( points );
 
     ui->preFrequencyPlot->replot();
@@ -117,13 +129,26 @@ void PlotWindow::replot()
     data = myMixer->get_processedFrequencies();
     QPolygonF points2;
     for (long int i = 0; i < COMP_SAMPLES; ++i)
-    {
         points2 << QPointF( static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES*i, data[i] );
-    }
+
     curve_post->setSamples( points2 );
 
     ui->postFrequencyPlot->replot();
+
+    //-------------if filter_window is open: filter plot----------------------
+    if(filter_window.isVisible())
+    {
+        data = myMixer->get_filter();
+        QPolygonF points3;
+        for (long int i = 0; i < COMP_SAMPLES; ++i)
+            points3 << QPointF( static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES*i, data[i] );
+
+        curve_filter->setSamples( points3 );
+
+        uif->filterPlot->replot();
+    }
 }
+
 
 
 void PlotWindow::update_filter(double val)
@@ -133,7 +158,7 @@ void PlotWindow::update_filter(double val)
     int i;
     for(i = 0; i <= NUM_SLIDERS; ++i)
     {
-        //search which slider have been updated
+        //search which slider has been updated
         QLayoutItem* item = ui->Sliders_pane->itemAtPosition(0, i);
         if(item == nullptr)
             return;
@@ -150,4 +175,10 @@ void PlotWindow::update_filter(double val)
         myMixer->set_volume(val/100);
     else
         myMixer->set_filterValue(i-1, pow(10, val));
+}
+
+
+void PlotWindow::show_filter_window()
+{
+    filter_window.show();
 }

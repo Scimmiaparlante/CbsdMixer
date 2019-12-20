@@ -199,6 +199,13 @@
      <height>24</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuPlotting">
+    <property name="title">
+     <string>Plotting</string>
+    </property>
+    <addaction name="actionShow_filter"/>
+   </widget>
+   <addaction name="menuPlotting"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -217,6 +224,14 @@
   <action name="actionTime">
    <property name="text">
     <string>Time</string>
+   </property>
+  </action>
+  <action name="actionShow_filter">
+   <property name="text">
+    <string>Show filter</string>
+   </property>
+   <property name="toolTip">
+    <string>Show filter graph</string>
    </property>
   </action>
  </widget>

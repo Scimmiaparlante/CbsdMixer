@@ -23,6 +23,7 @@ public:
 
     virtual void apply(fftw_complex* dest_buf, fftw_complex* source_buf, double extra_factor);
     virtual int set_filterValue(int n_filter, double value);
+    virtual double* get_filter() { return filter; }
 };
 
 #endif // FILTER_H
