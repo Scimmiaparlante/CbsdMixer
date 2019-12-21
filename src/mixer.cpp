@@ -10,6 +10,9 @@
 //number of buffers
 #define NUM_BUFFERS 2 //DO NOT MODIFY! The implementation of get_inactive_buffer() requires it to be 2
 
+//initialization value of the critical inactive buffers
+#define DEF_BUFFER_VAL	100
+
 
 Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingFucntion wind_)
 {
@@ -69,18 +72,19 @@ void Mixer::init_buffers()
     }
 
     active_buffer = 0;
+	unsigned int inactive_buffer = 1; //temporary variable to use in this function: it's the inverse of the active buffer
 
     //cleaning the inactive buffers for the first run
     for(int i = 0; i < NUM_SAMPLES; ++i) {
-        rawData_i[active_buffer][i] = 100;
-        rawData_d[active_buffer][i] = 100;
+        rawData_i[inactive_buffer][i] = DEF_BUFFER_VAL;					//for the processing
+        rawData_d[active_buffer][i] = DEF_BUFFER_VAL;					//for the get method
     }
 
     for(int i = 0; i < COMP_SAMPLES; ++i) {
-        rawFrequencies_c[active_buffer][i][0] = 100;
-        rawFrequencies_c[active_buffer][i][1] = 100;
-        processedFrequencies_c[active_buffer][i][0] = 100;
-        processedFrequencies_c[active_buffer][i][1] = 100;
+        rawFrequencies_c[active_buffer][i][0] = DEF_BUFFER_VAL;			//for the get method
+        rawFrequencies_c[active_buffer][i][1] = DEF_BUFFER_VAL;			//for the get method
+        processedFrequencies_c[active_buffer][i][0] = DEF_BUFFER_VAL;	//for the get method
+        processedFrequencies_c[active_buffer][i][1] = DEF_BUFFER_VAL;	//for the get method
     }
 }
 
@@ -239,7 +243,6 @@ Mixer::~Mixer()
         fftw_destroy_plan(direct_plan[i]);
         fftw_destroy_plan(inverse_plan[i]);
     }
-
 
     delete[] rawData_d;
     delete[] processedData_d;
