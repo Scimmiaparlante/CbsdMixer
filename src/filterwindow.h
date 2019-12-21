@@ -18,20 +18,19 @@ class FilterWindow : public QMainWindow
     Q_OBJECT
 
 private:
-
-
-
-
-public:
     Ui::FilterWindow* ui;
     QwtPlotCurve* curve_filter;
 
-    explicit FilterWindow(int x_min, int x_max, QWidget *parent = nullptr);
+    double resolution;
+    unsigned int num_elem;
+
+public:
+    explicit FilterWindow(double resolution_, unsigned int num_elem_, QWidget *parent = nullptr);
     ~FilterWindow();
 
-signals:
-
 public slots:
+
+    void replot(double* filter);
 };
 
 #endif // FILTERWINDOW_H

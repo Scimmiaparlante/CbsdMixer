@@ -43,7 +43,7 @@ public:
 public slots:
     void replot();
     void update_filter(double val);
-    void show_filter_window();
+    void show_filter_window() { filter_window.show(); }
 };
 
 

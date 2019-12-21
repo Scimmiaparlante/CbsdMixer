@@ -15,7 +15,7 @@
 PlotWindow::PlotWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::PlotWindow),
-    filter_window(SAMPLE_RATE/NUM_SAMPLES, SAMPLE_RATE/2, this)
+    filter_window(SAMPLE_RATE/NUM_SAMPLES, COMP_SAMPLES, this)
 {
     ui->setupUi(this);
 
@@ -129,16 +129,7 @@ void PlotWindow::replot()
 
     //-------------if filter_window is open: filter plot----------------------
     if(filter_window.isVisible())
-    {
-        data = myMixer->get_filter();
-        QPolygonF points3;
-        for (long int i = 0; i < COMP_SAMPLES; ++i)
-            points3 << QPointF( static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES*i, data[i] );
-
-        filter_window.curve_filter->setSamples( points3 );
-
-        filter_window.ui->filterPlot->replot();
-    }
+        filter_window.replot(myMixer->get_filter());
 }
 
 
@@ -169,8 +160,3 @@ void PlotWindow::update_filter(double val)
         myMixer->set_filterValue(i-1, pow(10, val));
 }
 
-
-void PlotWindow::show_filter_window()
-{
-    filter_window.show();
-}

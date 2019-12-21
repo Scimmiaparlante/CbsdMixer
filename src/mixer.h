@@ -11,7 +11,7 @@
 #include "Filters/filter_types.h"
 
 #define SAMPLE_RATE     44100
-#define NUM_SAMPLES     4704
+#define NUM_SAMPLES     4704               //try to keep this an even number for easier inversion of the int division
 #define DEF_DEVICE_IN   "sysdefault"
 #define DEF_DEVICE_OUT  "sysdefault"
 
@@ -62,6 +62,7 @@ private:
     fftw_plan* direct_plan;
     fftw_plan* inverse_plan;
 
+    //functions called by the constructor
     void init_buffers();
     void init_filter(FilteringShape shape, std::vector<double> freq);
 
@@ -77,6 +78,7 @@ public:
     Mixer(std::vector<double> frequencies_, FilteringShape shape_ = RECTANGULAR_FILTERING, WindowingFucntion wind_ = DISABLE_WINDOWING);
     ~Mixer();
 
+    //never ending functions to start acquisition and reproduction
     [[noreturn]] void startAcquisition();
     [[noreturn]] void startReproduction();
 
