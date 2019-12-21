@@ -87,13 +87,13 @@ void Mixer::init_filter(FilteringShape shape, std::vector<double> freq)
     switch(shape)//choose the correct type of filter
     {
     case RECTANGULAR_FILTERING:
-        filter = new RectangularFilter(COMP_SAMPLES, SAMPLE_RATE, freq);
+        filter = new RectangularFilter(COMP_SAMPLES, static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES, freq);
         break;
     case TRIANGULAR_FILTERING:
-        filter = new TriangularFilter(COMP_SAMPLES, SAMPLE_RATE, freq);
+        filter = new TriangularFilter(COMP_SAMPLES, static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES, freq);
         break;
     case COSINE_FILTERING:
-        filter = new CosineFilter(COMP_SAMPLES, SAMPLE_RATE, freq);
+        filter = new CosineFilter(COMP_SAMPLES, static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES, freq);
         break;
     }
 }

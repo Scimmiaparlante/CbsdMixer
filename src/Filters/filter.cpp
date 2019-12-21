@@ -1,17 +1,17 @@
 #include "filter.h"
 
-Filter::Filter(unsigned int num_samples_, unsigned int sample_rate_, std::vector<double> frequencies_)
+Filter::Filter(unsigned int num_elem_, double resolution_, std::vector<double> frequencies_)
 {
-    num_samples = num_samples_;
-    sample_rate = sample_rate_;
+    num_elem = num_elem_;
+    resolution = resolution_;
     frequencies = frequencies_;
 
     for(unsigned long i = 0; i < frequencies.size(); ++i)
         filter_factors.push_back(1);
 
     //allocate and initialize filter
-    filter = new double[num_samples];
-    for(unsigned int i = 0; i < num_samples; ++i)
+    filter = new double[num_elem];
+    for(unsigned int i = 0; i < num_elem; ++i)
         filter[i] = 1;
 }
 
@@ -23,7 +23,7 @@ Filter::~Filter()
 
 void Filter::apply(fftw_complex* dest_buf, fftw_complex* source_buf, double extra_factor)
 {
-    for(unsigned int i = 0; i < num_samples; ++i)
+    for(unsigned int i = 0; i < num_elem; ++i)
     {
         dest_buf[i][0] = source_buf[i][0] * filter[i] * extra_factor;
         dest_buf[i][1] = source_buf[i][1] * filter[i] * extra_factor;

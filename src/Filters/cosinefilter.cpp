@@ -1,8 +1,8 @@
 #include "cosinefilter.h"
 #include <cmath>
 
-CosineFilter::CosineFilter(unsigned int num_samples_, unsigned int sample_rate_, std::vector<double> frequencies_)
-    : Filter(num_samples_, sample_rate_, frequencies_)
+CosineFilter::CosineFilter(unsigned int num_elem_, double resolution_, std::vector<double> frequencies_)
+    : Filter(num_elem_, resolution_, frequencies_)
 {
 
 }
@@ -13,9 +13,9 @@ void CosineFilter::compute_filter()
     unsigned long part = 0;
     unsigned long len = frequencies.size();
 
-    for(unsigned long i = 0; i < num_samples; ++i)
+    for(unsigned long i = 0; i < num_elem; ++i)
     {
-        double f = i * sample_rate / ((num_samples - 1)*2); //check this computation
+        double f = i * resolution;
 
         if(f < frequencies[0])
         {
@@ -25,7 +25,7 @@ void CosineFilter::compute_filter()
         }
         else if(f > (frequencies[len-1]))
         {
-            double n = (f - frequencies[len-1]) / (sample_rate/2 - frequencies[len-1]);
+            double n = (f - frequencies[len-1]) / (num_elem*resolution - frequencies[len-1]);
             double n2 = (1 - cos(n * M_PI)) / 2;
             filter[i] = 1 * n2 + filter_factors[len-1] * (1-n2);
         }

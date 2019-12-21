@@ -7,8 +7,8 @@
 class Filter
 {
 protected:
-    unsigned int num_samples;
-    unsigned int sample_rate;
+    unsigned int num_elem;
+    double resolution;
     std::vector<double> frequencies;
 
     std::vector<double> filter_factors;
@@ -18,7 +18,7 @@ protected:
     virtual void compute_filter() = 0;
 
 public:
-    Filter(unsigned int num_samples_, unsigned int sample_rate_, std::vector<double> frequencies_);
+    Filter(unsigned int num_elem_, double resolution_, std::vector<double> frequencies_);
     virtual ~Filter();
 
     virtual void apply(fftw_complex* dest_buf, fftw_complex* source_buf, double extra_factor);

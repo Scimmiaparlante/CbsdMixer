@@ -1,8 +1,8 @@
 #include "rectangularfilter.h"
 
 
-RectangularFilter::RectangularFilter(unsigned int num_samples_, unsigned int sample_rate_, std::vector<double> frequencies_)
-                    : Filter(num_samples_, sample_rate_, frequencies_)
+RectangularFilter::RectangularFilter(unsigned int num_elem_, double resolution_, std::vector<double> frequencies_)
+                    : Filter(num_elem_, resolution_, frequencies_)
 {
 
 }
@@ -13,9 +13,9 @@ void RectangularFilter::compute_filter()
     unsigned long part = 0;
     unsigned long len = frequencies.size();
 
-    for(unsigned long i = 0; i < num_samples; ++i)
+    for(unsigned long i = 0; i < num_elem; ++i)
     {
-        double f = i * sample_rate / ((num_samples - 1)*2); //check this computation
+        double f = i * resolution;
 
         if(f < (frequencies[0] + frequencies[1])/2)
             filter[i] = filter_factors[0];

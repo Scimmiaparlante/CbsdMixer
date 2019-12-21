@@ -9,7 +9,7 @@ protected:
     virtual void compute_filter();
 
 public:
-    RectangularFilter(unsigned int num_samples_, unsigned int sample_rate_, std::vector<double> frequencies_);
+    RectangularFilter(unsigned int num_elem_, double resolution_, std::vector<double> frequencies_);
 };
 
 #endif // RECTANGULARFILTER_H

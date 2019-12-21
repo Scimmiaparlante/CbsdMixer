@@ -15,7 +15,7 @@
 PlotWindow::PlotWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::PlotWindow),
-    filter_window(SAMPLE_RATE/NUM_SAMPLES, COMP_SAMPLES, this)
+    filter_window(static_cast<double>(SAMPLE_RATE)/NUM_SAMPLES, COMP_SAMPLES, this)
 {
     ui->setupUi(this);
 

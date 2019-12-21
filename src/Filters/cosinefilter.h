@@ -9,7 +9,7 @@ protected:
     virtual void compute_filter();
 
 public:
-    CosineFilter(unsigned int num_samples_, unsigned int sample_rate_, std::vector<double> frequencies_);
+    CosineFilter(unsigned int num_elem_, double resolution_, std::vector<double> frequencies_);
 };
 
 #endif // COSINEFILTER_H
