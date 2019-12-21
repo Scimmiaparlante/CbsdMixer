@@ -6,6 +6,7 @@
 #include <mutex>
 #include <atomic>
 #include <fftw3.h>
+#include <thread>
 
 #include "audioio.h"
 #include "Filters/filter_types.h"
@@ -62,6 +63,10 @@ private:
     fftw_plan* direct_plan;
     fftw_plan* inverse_plan;
 
+    //thread objects
+    std::thread* input_thread;
+    std::thread* output_thread;
+
     //functions called by the constructor
     void init_buffers();
     void init_filter(FilteringShape shape, std::vector<double> freq);
@@ -81,6 +86,7 @@ public:
     //never ending functions to start acquisition and reproduction
     [[noreturn]] void startAcquisition();
     [[noreturn]] void startReproduction();
+    void start();
 
     inline double* get_filter()                 {return filter->get_filter();}
     inline double* get_rawData()                {return rawData_d[get_inactive_buffer()];}

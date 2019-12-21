@@ -1,7 +1,6 @@
 #ifndef PLOTWINDOW_H
 #define PLOTWINDOW_H
 
-#include <thread>
 #include <QMainWindow>
 #include <QTimer>
 
@@ -29,9 +28,6 @@ private:
     QTimer *plotTimer;
 
     Mixer *myMixer;
-
-    std::thread* mixerThread;
-    std::thread* mixerThread2;
 
     void init_logFreqPlot(QwtPlot* p, QwtPlotCurve* c);
     void init_slider_panel(std::vector<double> freq);

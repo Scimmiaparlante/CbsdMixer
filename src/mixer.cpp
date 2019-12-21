@@ -3,6 +3,7 @@
 #include <sched.h>
 #include <unistd.h>
 #include <iostream>
+#include <signal.h>
 
 #define DEF_OVERLAP_SIZE 300        //default size of the overlapping window
 
@@ -35,6 +36,9 @@ Mixer::Mixer(std::vector<double> frequencies_, FilteringShape shape_, WindowingF
     //initialize filter and volume
     init_filter(shape_, frequencies_);
     volume = 1;
+
+    //thread pointers init
+    input_thread = output_thread = nullptr;
 }
 
 void Mixer::init_buffers()
@@ -166,7 +170,6 @@ void Mixer::startReproduction()
 
             //normalize
             *pd_d /= static_cast<double>(NUM_SAMPLES);
-
             //integrate with the past step
             if(i < overlap_size)
                 *pd_d = (*pd_d)*(i_d/overlap_size) + processedData_d[active_buf][i + NUM_SAMPLES - overlap_size]*(1 - i_d/overlap_size);
@@ -176,9 +179,14 @@ void Mixer::startReproduction()
 
         //output
         device->output_write(processedData_i[inactive_buf]);
-
-        //usleep(90000);
     }
+}
+
+
+void Mixer::start()
+{
+    input_thread = new std::thread(&Mixer::startAcquisition, this);
+    output_thread = new std::thread(&Mixer::startReproduction, this);
 }
 
 
@@ -207,6 +215,15 @@ double* Mixer::get_processedFrequencies()
 
 Mixer::~Mixer()
 {
+    if(input_thread != nullptr && output_thread != nullptr)
+    {
+        pthread_kill(input_thread->native_handle(), SIGKILL);
+        pthread_kill(output_thread->native_handle(), SIGKILL);
+
+        delete input_thread;
+        delete output_thread;
+    }
+
     for (int i = 0; i < NUM_BUFFERS; ++i)
     {
         delete[] rawData_d[i];

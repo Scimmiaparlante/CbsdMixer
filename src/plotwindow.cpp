@@ -2,7 +2,6 @@
 #include "ui_plotwindow.h"
 #include "ui_filterwindow.h"
 #include <qwt_scale_engine.h>
-#include <signal.h>
 
 #define MAX_Y 1000000000
 
@@ -33,8 +32,7 @@ PlotWindow::PlotWindow(QWidget *parent) :
 
     //mixer startup (+ start reproduction)
     myMixer = new Mixer(freq, COSINE_FILTERING, OVERLAP_WINDOWING);
-    mixerThread = new std::thread(&Mixer::startAcquisition, myMixer);
-    mixerThread2 = new std::thread(&Mixer::startReproduction, myMixer);
+    myMixer->start();
 
     //set timer to trigger the update function
     plotTimer = new QTimer(nullptr);
@@ -96,12 +94,6 @@ PlotWindow::~PlotWindow()
     delete ui;
     delete myMixer;
     delete plotTimer;
-
-    pthread_kill(mixerThread->native_handle(), SIGKILL);
-    pthread_kill(mixerThread2->native_handle(), SIGKILL);
-
-    delete mixerThread;
-    delete mixerThread2;
 }
 
 
